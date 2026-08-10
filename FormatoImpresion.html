@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Nota de Entrega</title>
+  <style>
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      color: #333;
+      margin: 10px;
+      padding: 0;
+      font-size: 11px;
+    }
+    .ticket-container {
+      max-width: 800px;
+      margin: 0 auto;
+      border: 1px solid #ccc;
+      padding: 15px;
+      background: #fff;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #000;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+    .logo-area {
+      text-align: center;
+      width: 30%;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px dashed #ccc; /* Espacio reservado para el logo */
+    }
+    .company-details {
+      width: 40%;
+      text-align: center;
+      font-size: 10px;
+    }
+    .company-name {
+      font-weight: bold;
+      font-size: 11px;
+    }
+    .document-box {
+      width: 30%;
+      border: 2px solid #000;
+      text-align: center;
+      padding: 10px 5px;
+    }
+    .document-title {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+    .document-number {
+      font-size: 13px;
+      font-weight: bold;
+      color: #d32f2f;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+      background: #f9f9f9;
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    .info-item span {
+      font-weight: bold;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    th {
+      border-bottom: 2px solid #000;
+      border-top: 1px solid #000;
+      padding: 6px;
+      text-align: left;
+      font-weight: bold;
+    }
+    td {
+      padding: 6px;
+      border-bottom: 1px dashed #ccc;
+    }
+    .totals {
+      text-align: right;
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: bold;
+      border-top: 2px solid #000;
+      padding-top: 5px;
+    }
+    .observations {
+      margin: 15px 0;
+      border: 1px solid #ccc;
+      padding: 8px;
+      background: #fafafa;
+    }
+    .signatures {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 60px;
+      padding: 0 10px;
+    }
+    .signature-box {
+      width: 28%;
+      border-top: 1px solid #000;
+      text-align: center;
+      padding-top: 5px;
+      font-size: 10px;
+    }
+    @media print {
+      body { margin: 0; }
+      .ticket-container { border: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ticket-container">
+    <!-- Header -->
+   <div class="logo-area" id="logo-container">
+    <img id="img-logo" src="" alt="Logo" style="max-width: 100%; max-height: 80px; object-fit: contain; display: none;">
+    <span id="logo-text" style="font-weight: bold; display: none;">>[ LOGO ]<</span>
+</div>
+    <div class="company-details">
+          <div class="company-name" id="emisor-nombre"></div>
+          <div id="emisor-ruc">RUC: </div>
+          <div>LIMA - PERU</div>
+        </div>
+      <div class="document-box">
+        <div class="document-title">NOTA INTERNA DE ENTREGA</div>
+        <div class="document-number" id="lbl-correlativo">DESC-CAL-000</div>
+      </div>
+    </div>
+
+    <!-- Datos de la Nota -->
+    <div class="info-grid">
+      <div class="info-item"><span>CLIENTE:</span> <span id="lbl-cliente" style="font-weight: normal;">-</span></div>
+      <div class="info-item"><span>FECHA EMISIÓN:</span> <span id="lbl-fecha" style="font-weight: normal;">-</span></div>
+      <div class="info-item"><span>DOCUMENTO:</span> <span id="lbl-doc" style="font-weight: normal;">-</span></div>
+      <div class="info-item"><span>FECHA VENC.:</span> <span id="lbl-venc" style="font-weight: normal;">-</span></div>
+      <div class="info-item"><span>DIRECCIÓN:</span> <span id="lbl-direccion" style="font-weight: normal;">-</span></div>
+      <div class="info-item"><span>COND. PAGO:</span> <span id="lbl-condicion" style="font-weight: normal;">-</span></div>
+    </div>
+
+    <!-- Tabla de Productos -->
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 20%;">CÓDIGO</th>
+          <th style="width: 15%; text-align: right;">CANTIDAD</th>
+          <th style="width: 15%; text-align: center;">U.M.</th>
+          <th style="width: 50%;">DESCRIPCIÓN</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-productos-body">
+      </tbody>
+    </table>
+
+    <!-- Totales -->
+    <div class="totals">
+      TOTAL DE KILOS: <span id="lbl-total-kilos">0.0000</span> KG
+    </div>
+
+    <!-- Observaciones -->
+    <div class="observations">
+      <strong>OBSERVACIONES:</strong>
+      <div id="lbl-observaciones" style="margin-top: 5px;">-</div>
+      <div style="margin-top: 10px; font-size: 9px;">
+        <strong>AUTORIZADO POR:</strong> <span id="lbl-autorizado">-</span> | 
+        <strong>CREADO POR:</strong> <span id="lbl-creador">-</span>
+      </div>
+    </div>
+
+    <!-- Firmas -->
+    <div class="signatures">
+      <div class="signature-box">FIRMA DE ALMACÉN</div>
+      <div class="signature-box">FIRMA DE CLIENTE</div>
+      <div class="signature-box">FIRMA DE SEGURIDAD</div>
+    </div>
+  </div>
+
+  <script>
+      window.onload = function() {
+      const data = window.opener.datosImpresionActual;
+      if (data) {
+        document.getElementById('lbl-correlativo').innerText = data.correlativo;
+        document.getElementById('emisor-nombre').innerText = data.cabecera.empresa;
+        document.getElementById('emisor-ruc').innerText = "RUC: " + data.cabecera.rucEmisor;
+        
+        // --- Asignación dinámica del Logo ---
+        const imgLogo = document.getElementById('img-logo');
+        const logoText = document.getElementById('logo-text');
+
+        if (data.cabecera.urlLogo) {
+          imgLogo.src = data.cabecera.urlLogo;
+          imgLogo.style.display = 'block';
+          if (logoText) logoText.style.display = 'none';
+        } else {
+          imgLogo.style.display = 'none';
+          if (logoText) {
+            logoText.innerText = data.cabecera.empresa;
+            logoText.style.display = 'inline';
+          }
+        }
+        // -------------------------------------
+
+        document.getElementById('lbl-cliente').innerText = data.cabecera.cliente;
+        document.getElementById('lbl-doc').innerText = data.cabecera.documento;
+        document.getElementById('lbl-direccion').innerText = data.cabecera.direccion || '-';
+        document.getElementById('lbl-fecha').innerText = data.cabecera.fechaEmision;
+        document.getElementById('lbl-venc').innerText = data.cabecera.fechaVencimiento;
+        document.getElementById('lbl-condicion').innerText = data.cabecera.condicion;
+        document.getElementById('lbl-autorizado').innerText = data.cabecera.autorizado;
+        document.getElementById('lbl-creador').innerText = data.creador || 'SISTEMA';
+        document.getElementById('lbl-observaciones').innerText = data.cabecera.observaciones || '-';
+        
+        let totalKilos = 0;
+        const tbody = document.getElementById('tabla-productos-body');
+        tbody.innerHTML = '';
+        
+        data.productos.forEach(prod => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>` + prod.codigo + `</td>
+            <td style="text-align: right;">` + parseFloat(prod.cantidad).toFixed(4) + `</td>
+            <td style="text-align: center;">` + prod.um + `</td>
+            <td>` + prod.descripcion + `</td>
+          `;
+          tbody.appendChild(row);
+          totalKilos += parseFloat(prod.cantidad);
+        });
+        
+        document.getElementById('lbl-total-kilos').innerText = totalKilos.toFixed(4);
+        
+        setTimeout(() => {
+          window.print();
+        }, 800);
+      }
+    };
+
+  </script>
+</body>
+</html>

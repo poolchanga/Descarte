@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Login - Gestión de Descarte</title>
+    <?!= incluir('Estilos'); ?>
+  </head>
+  <body class="login-body">
+    <div class="login-card">
+      <div class="login-logo">
+        <h2>SISTEMA DESCARTE</h2>
+        <p>Inicie sesión para continuar</p>
+      </div>
+      
+      <div class="form-group">
+        <label>Usuario</label>
+        <input type="text" id="txt-usuario" placeholder="ejemplo.user">
+      </div>
+      
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="txt-pass" placeholder="••••••••">
+      </div>
+      
+      <div class="form-group">
+        <label>Empresa / Rol</label>
+        <select id="select-empresa">
+          <option value="AGA">AGA</option>
+          <option value="LARAMA">LARAMA</option>
+          <option value="ARENUVA">ARENUVA</option>
+          <option value="ADMIN">ADMINISTRADOR</option>
+        </select>
+      </div>
+  <div style="text-align: center;">
+      <button class="btn-login" onclick="ejecutarLogin()">Ingresar al Sistema</button>
+      <div id="login-mensaje" class="login-error"></div>
+    </div>
+
+    <?!= incluir('JavaScriptLogin'); ?>
+
+    <!-- Frutas Flotantes Animadas (SVG Base64 Inmune a Caídas) -->
+    <img 
+      src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 160'><g transform='translate(10,10)'><path d='M45,25 Q30,10 20,25 Q25,40 45,35 Z' fill='%235b8c1b'/><path d='M45,30 Q65,15 75,30 Q70,45 45,38 Z' fill='%236ba021'/><path d='M45,35 C40,20 48,10 50,5' stroke='%23633d11' stroke-width='3' fill='none'/><circle cx='25' cy='55' r='14' fill='%23a4d122'/><circle cx='45' cy='50' r='15' fill='%23b1dc28'/><circle cx='65' cy='55' r='14' fill='%23a4d122'/><circle cx='18' cy='75' r='14' fill='%2391bf1b'/><circle cx='36' cy='72' r='15' fill='%23a4d122'/><circle cx='55' cy='72' r='15' fill='%23b1dc28'/><circle cx='73' cy='75' r='14' fill='%23a4d122'/><circle cx='28' cy='92' r='14' fill='%23a4d122'/><circle cx='46' cy='92' r='15' fill='%23b1dc28'/><circle cx='63' cy='92' r='14' fill='%2391bf1b'/><circle cx='38' cy='110' r='13' fill='%23a4d122'/><circle cx='53' cy='110' r='13' fill='%2391bf1b'/><circle cx='45' cy='125' r='11' fill='%2384b014'/><path d='M18,90 Q5,105 0,118' stroke='%233d5a0d' stroke-width='3.5' stroke-linecap='round' fill='none'/><path d='M72,90 Q85,105 105,115' stroke='%233d5a0d' stroke-width='3.5' stroke-linecap='round' fill='none'/><path d='M35,122 L32,152' stroke='%233d5a0d' stroke-width='3.5'/><path d='M55,122 L58,152' stroke='%233d5a0d' stroke-width='3.5'/><polygon points='12,56 42,56 42,70 12,70' fill='%23000'/><polygon points='48,56 78,56 78,70 48,70' fill='%23000'/><rect x='42' y='58' width='6' height='4' fill='%23000'/><polygon points='15,58 20,58 15,68 12,68' fill='%23fff'/><polygon points='51,58 56,58 51,68 48,68' fill='%23fff'/><path d='M38,82 Q45,89 52,82' stroke='%232c4205' stroke-width='2.5' fill='none' stroke-linecap='round'/></g><g transform='translate(115, 20)'><path d='M22,95 Q8,110 0,120' stroke='%231d2a44' stroke-width='4' stroke-linecap='round' fill='none'/><path d='M88,95 Q102,110 110,120' stroke='%231d2a44' stroke-width='4' stroke-linecap='round' fill='none'/><path d='M42,120 L40,152' stroke='%231d2a44' stroke-width='4'/><path d='M68,120 L70,152' stroke='%231d2a44' stroke-width='4'/><circle cx='55' cy='68' r='50' fill='%236282a2'/><path d='M30,25 Q35,18 45,22 Q55,15 65,22 Q75,18 80,25 Q70,30 55,27 Q40,30 30,25 Z' fill='%234d6b8a'/><polygon points='15,48 50,48 50,65 15,65' fill='%23000'/><polygon points='60,48 95,48 95,65 60,65' fill='%23000'/><rect x='50' y='52' width='10' height='5' fill='%23000'/><polygon points='18,50 24,50 18,63 15,63' fill='%23fff'/><polygon points='63,50 69,50 63,63 60,63' fill='%23fff'/><path d='M45,82 Q55,93 65,82' stroke='%231d2a44' stroke-width='3' fill='none' stroke-linecap='round'/></g><g transform='translate(225, 10)'><path d='M45,25 Q25,10 15,22 Q25,35 45,32 Z' fill='%236ba021'/><path d='M45,28 Q65,10 75,22 Q65,35 45,32 Z' fill='%235b8c1b'/><path d='M45,20 L43,5' stroke='%235b8c1b' stroke-width='3.5' fill='none'/><circle cx='25' cy='50' r='12' fill='%23e63956'/><circle cx='45' cy='45' r='13' fill='%23f04866'/><circle cx='65' cy='50' r='12' fill='%23e63956'/><circle cx='18' cy='68' r='12' fill='%23d42a47'/><circle cx='36' cy='65' r='13' fill='%23e63956'/><circle cx='55' cy='65' r='13' fill='%23f04866'/><circle cx='73' cy='68' r='12' fill='%23e63956'/><circle cx='22' cy='85' r='12' fill='%23e63956'/><circle cx='40' cy='85' r='13' fill='%23f04866'/><circle cx='58' cy='85' r='13' fill='%23e63956'/><circle cx='72' cy='85' r='11' fill='%23d42a47'/><circle cx='30' cy='102' r='11' fill='%23d42a47'/><circle cx='46' cy='102' r='12' fill='%23e63956'/><circle cx='62' cy='102' r='11' fill='%23d42a47'/><circle cx='46' cy='118' r='10' fill='%23b81d38'/><path d='M15,80 Q2,95 -5,105' stroke='%23700d1e' stroke-width='3.5' stroke-linecap='round' fill='none'/><path d='M72,80 Q85,95 95,105' stroke='%23700d1e' stroke-width='3.5' stroke-linecap='round' fill='none'/><path d='M38,118 L36,152' stroke='%23700d1e' stroke-width='3.5'/><path d='M54,118 L56,152' stroke='%23700d1e' stroke-width='3.5'/><polygon points='12,52 42,52 42,66 12,66' fill='%23000'/><polygon points='48,52 78,52 78,66 48,66' fill='%23000'/><rect x='42' y='54' width='6' height='4' fill='%23000'/><polygon points='15,54 20,54 15,64 12,64' fill='%23fff'/><polygon points='51,54 56,54 51,64 48,64' fill='%23fff'/><path d='M38,78 Q45,86 52,78' stroke='%23700d1e' stroke-width='2.5' fill='none' stroke-linecap='round'/></g></svg>" 
+      alt="Frutas Cool" 
+      class="frutas-flotantes">
+    <!-- Uva Verde -->
+    <g transform="translate(10, 10)">
+      <!-- Hojas y Tallo -->
+      <path d="M45,25 Q30,10 20,25 Q25,40 45,35 Z" fill="#5b8c1b" />
+      <path d="M45,30 Q65,15 75,30 Q70,45 45,38 Z" fill="#6ba021" />
+      <path d="M45,35 C40,20 48,10 50,5" stroke="#633d11" stroke-width="3" fill="none" />
+      <!-- Granos de Uva -->
+      <circle cx="25" cy="55" r="14" fill="#a4d122" />
+      <circle cx="45" cy="50" r="15" fill="#b1dc28" />
+      <circle cx="65" cy="55" r="14" fill="#a4d122" />
+      <circle cx="18" cy="75" r="14" fill="#91bf1b" />
+      <circle cx="36" cy="72" r="15" fill="#a4d122" />
+      <circle cx="55" cy="72" r="15" fill="#b1dc28" />
+      <circle cx="73" cy="75" r="14" fill="#a4d122" />
+      <circle cx="28" cy="92" r="14" fill="#a4d122" />
+      <circle cx="46" cy="92" r="15" fill="#b1dc28" />
+      <circle cx="63" cy="92" r="14" fill="#91bf1b" />
+      <circle cx="38" cy="110" r="13" fill="#a4d122" />
+      <circle cx="53" cy="110" r="13" fill="#91bf1b" />
+      <circle cx="45" cy="125" r="11" fill="#84b014" />
+      <!-- Extremidades -->
+      <path d="M18,90 Q5,105 0,118" stroke="#3d5a0d" stroke-width="3.5" stroke-linecap="round" fill="none" />
+      <path d="M72,90 Q85,105 105,115" stroke="#3d5a0d" stroke-width="3.5" stroke-linecap="round" fill="none" />
+      <path d="M35,122 L32,152" stroke="#3d5a0d" stroke-width="3.5" stroke-linecap="round" />
+      <path d="M55,122 L58,152" stroke="#3d5a0d" stroke-width="3.5" stroke-linecap="round" />
+      <!-- Lentes de Sol Thug Life -->
+      <polygon points="12,56 42,56 42,70 12,70" fill="#000" />
+      <polygon points="48,56 78,56 78,70 48,70" fill="#000" />
+      <rect x="42" y="58" width="6" height="4" fill="#000" />
+      <!-- Brillo Lentes -->
+      <polygon points="15,58 20,58 15,68 12,68" fill="#fff" />
+      <polygon points="51,58 56,58 51,68 48,68" fill="#fff" />
+      <!-- Sonrisa -->
+      <path d="M38,82 Q45,89 52,82" stroke="#2c4205" stroke-width="2.5" fill="none" stroke-linecap="round" />
+    </g>
+
+    <!-- Arándano (Centro) -->
+    <g transform="translate(115, 20)">
+      <!-- Extremidades -->
+      <path d="M22,95 Q8,110 0,120" stroke="#1d2a44" stroke-width="4" stroke-linecap="round" fill="none" />
+      <path d="M88,95 Q102,110 110,120" stroke="#1d2a44" stroke-width="4" stroke-linecap="round" fill="none" />
+      <path d="M42,120 L40,152" stroke="#1d2a44" stroke-width="4" stroke-linecap="round" />
+      <path d="M68,120 L70,152" stroke="#1d2a44" stroke-width="4" stroke-linecap="round" />
+      <!-- Cuerpo -->
+      <circle cx="55" cy="68" r="50" fill="#6282a2" />
+      <!-- Corona Superior -->
+      <path d="M30,25 Q35,18 45,22 Q55,15 65,22 Q75,18 80,25 Q70,30 55,27 Q40,30 30,25 Z" fill="#4d6b8a" />
+      <!-- Lentes de Sol -->
+      <polygon points="15,48 50,48 50,65 15,65" fill="#000" />
+      <polygon points="60,48 95,48 95,65 60,65" fill="#000" />
+      <rect x="50" y="52" width="10" height="5" fill="#000" />
+      <!-- Brillo Lentes -->
+      <polygon points="18,50 24,50 18,63 15,63" fill="#fff" />
+      <polygon points="63,50 69,50 63,63 60,63" fill="#fff" />
+      <!-- Sonrisa -->
+      <path d="M45,82 Q55,93 65,82" stroke="#1d2a44" stroke-width="3" fill="none" stroke-linecap="round" />
+    </g>
+
+    <!-- Frambuesa / Fresa (Derecha) -->
+    <g transform="translate(225, 10)">
+      <!-- Hojas y Tallo -->
+      <path d="M45,25 Q25,10 15,22 Q25,35 45,32 Z" fill="#6ba021" />
+      <path d="M45,28 Q65,10 75,22 Q65,35 45,32 Z" fill="#5b8c1b" stroke-linejoin="round" />
+      <path d="M45,20 L43,5" stroke="#5b8c1b" stroke-width="3.5" fill="none" stroke-linecap="round" />
+      <!-- Granos de Frambuesa -->
+      <circle cx="25" cy="50" r="12" fill="#e63956" />
+      <circle cx="45" cy="45" r="13" fill="#f04866" />
+      <circle cx="65" cy="50" r="12" fill="#e63956" />
+      <circle cx="18" cy="68" r="12" fill="#d42a47" />
+      <circle cx="36" cy="65" r="13" fill="#e63956" />
+      <circle cx="55" cy="65" r="13" fill="#f04866" />
+      <circle cx="73" cy="68" r="12" fill="#e63956" />
+      <circle cx="22" cy="85" r="12" fill="#e63956" />
+      <circle cx="40" cy="85" r="13" fill="#f04866" />
+      <circle cx="58" cy="85" r="13" fill="#e63956" />
+      <circle cx="72" cy="85" r="11" fill="#d42a47" />
+      <circle cx="30" cy="102" r="11" fill="#d42a47" />
+      <circle cx="46" cy="102" r="12" fill="#e63956" />
+      <circle cx="62" cy="102" r="11" fill="#d42a47" />
+      <circle cx="46" cy="118" r="10" fill="#b81d38" />
+      <!-- Extremidades -->
+      <path d="M15,80 Q2,95 -5,105" stroke="#700d1e" stroke-width="3.5" stroke-linecap="round" fill="none" />
+      <path d="M72,80 Q85,95 95,105" stroke="#700d1e" stroke-width="3.5" stroke-linecap="round" fill="none" />
+      <path d="M38,118 L36,152" stroke="#700d1e" stroke-width="3.5" stroke-linecap="round" />
+      <path d="M54,118 L56,152" stroke="#700d1e" stroke-width="3.5" stroke-linecap="round" />
+      <!-- Lentes de Sol -->
+      <polygon points="12,52 42,52 42,66 12,66" fill="#000" />
+      <polygon points="48,52 78,52 78,66 48,66" fill="#000" />
+      <rect x="42" y="54" width="6" height="4" fill="#000" />
+      <!-- Brillo Lentes -->
+      <polygon points="15,54 20,54 15,64 12,64" fill="#fff" />
+      <polygon points="51,54 56,54 51,64 48,64" fill="#fff" />
+      <!-- Sonrisa -->
+      <path d="M38,78 Q45,86 52,78" stroke="#700d1e" stroke-width="2.5" fill="none" stroke-linecap="round" />
+    </g>
+  </svg>
+</div>
+  </body>
+</html>

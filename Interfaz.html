@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <?!= incluir('Estilos'); ?>
+    <style>
+      #div-resultado-reporte {
+        max-width: 1420px !important;      
+        margin: 5px auto !important;      
+        padding: 5px !important;    
+        background-color: #ffffff !important; 
+      }
+
+      #div-resultado-reporte table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin: 0 0 5px 0 !important; 
+        padding: 0 !important;
+      }
+
+      #div-resultado-reporte tr {
+        height: auto !important; 
+      }
+      #div-resultado-reporte th, 
+      #div-resultado-reporte td {
+        padding: 2px 5px !important;       
+        line-height: 1.1 !important;       
+        height: auto !important;
+      }
+
+      #div-resultado-reporte td, 
+      #div-resultado-reporte th,
+      #div-resultado-reporte font,
+      #div-resultado-reporte span,
+      #div-resultado-reporte b {
+        color: #4a4c4f !important;         
+        font-weight: 700 !important;        
+        font-size: 13px !important;        
+      }
+
+      #div-resultado-reporte [style*="background-color"] td,
+      #div-resultado-reporte [style*="background-color"] font,
+      #div-resultado-reporte [style*="background-color"] b,
+      #div-resultado-reporte [style*="background-color"] span {
+        font-size: 12px !important;
+        padding: 2px 5px !important;
+      }
+
+      #div-resultado-reporte tr:empty,
+      #div-resultado-reporte td:empty,
+      #div-resultado-reporte tr[style*="height"] td:empty,
+      #div-resultado-reporte tr:has(td:empty) {
+        height: 0px !important;            
+        line-height: 0px !important;
+        padding: 0px !important;           
+        display: none !important;          
+      }
+      #div-resultado-reporte br {
+        display: none !important;          
+      }
+
+      .empresa-block {
+        margin-bottom: 10px !important;
+      }
+
+      .header-larama, .header-aga, .header-arenuva {
+        padding: 4px 10px !important;
+        font-size: 14px !important;
+      }
+
+      .subseccion-titulo {
+        padding: 3px 10px !important;
+        font-size: 11px !important;
+      }
+
+      .banner-total-general {
+        background-color: #fff2cc !important;
+        border: 3px solid #ffd966 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 20px !important;
+        border-radius: 8px !important;
+        margin: 25px auto 10px auto !important;
+        max-width: 500px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
+        text-align: center !important;
+      }
+
+      #div-resultado-reporte .banner-total-general,
+      #div-resultado-reporte .banner-total-general * {
+        font-size: unset !important;
+      }
+
+      .banner-total-general {
+        background-color: #fff2cc !important;
+        border: 2px solid #ffd966 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 12px 25px !important;
+        border-radius: 6px !important;
+        margin: 15px auto 5px auto !important;
+        max-width: 400px !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+      }
+
+      .banner-total-general span:first-child {
+        font-size: 15px !important; 
+        letter-spacing: 1px !important;
+        color: #7f6000 !important;
+        font-weight: 800 !important;
+        margin-bottom: 4px !important;
+        text-transform: uppercase !important;
+      }
+
+      .banner-total-general span:last-child {
+        font-size: 26px !important; 
+        font-weight: 900 !important;
+        color: #7f6000 !important;
+        line-height: 1.1 !important;
+        display: block !important;
+      }
+    </style>
+  </head>
+  <body class="dashboard-body">
+
+    <!-- SIDEBAR LATERAL OSCURO -->
+    <div class="sidebar">
+      <div class="sidebar-profile">
+        <div class="profile-avatar">👤</div>
+        <h3 id="lbl-nombre-usuario">Usuario</h3>
+        <p id="lbl-empresa-usuario">Empresa</p>
+      </div>
+      
+      <nav class="sidebar-menu">
+        <button class="menu-item active" onclick="cambiarPestana(event, 'tab-dashboard')">
+          <span class="icon">📊</span> Dashboard
+        </button>
+        <button class="menu-item" onclick="cambiarPestana(event, 'tab-reporte')">
+          <span class="icon">📝</span> Reporte
+        </button>
+        <button class="menu-item" onclick="cambiarPestana(event, 'tab-cruce')">
+          <span class="icon">🔄</span> Cruce de Stocks
+        </button>
+        <button class="menu-item" onclick="cambiarPestana(event, 'tab-guias')">
+          <span class="icon">🚚</span> Guías Provisionales
+        </button>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
+      </div>
+    </div>
+
+    <!-- ÁREA CENTRAL CLARA -->
+    <div class="main-content">
+      <header class="main-header">
+        <h2 id="txt-titulo-pestana">Dashboard General</h2>
+        <div class="header-right">
+          <span id="txt-fecha-actual"></span>
+        </div>
+      </header>
+
+      <div class="tab-container">
+        
+        <!-- PESTAÑA 1: DASHBOARD -->
+        <div id="tab-dashboard" class="tab-content active">
+          <div class="kpi-grid">
+            <div class="kpi-card"><h4>Descarte Campo (Kg)</h4><p id="kpi-campo">0.00</p></div>
+            <div class="kpi-card"><h4>Descarte Packing (Kg)</h4><p id="kpi-packing">0.00</p></div>
+            <div class="kpi-card text-blue"><h4>Total Consolidado</h4><p id="kpi-total">0.00</p></div>
+          </div>
+          <div class="chart-placeholder">
+            <h3>Espacio reservado para Gráficos Dinámicos</h3>
+          </div>
+        </div>
+
+        <!-- PESTAÑA 2: REPORTE -->
+        <div id="tab-reporte" class="tab-content">
+          <div class="report-filters">
+            <div class="filter-group">
+              <label for="fecha-inicio">Fecha Inicio:</label>
+              <input type="date" id="fecha-inicio">
+            </div>
+            <div class="filter-group">
+              <label for="fecha-fin">Fecha Fin:</label>
+              <input type="date" id="fecha-fin">
+            </div>
+            <div class="button-group">
+              <button class="btn btn-buscar" onclick="buscarReportes()"><span class="icon">🔍</span> BUSCAR</button>
+              <button class="btn btn-borrar" onclick="borrarReportes()"><span class="icon">🧹</span> BORRAR</button>
+              <button class="btn btn-copiar" onclick="copiarDatosReporte()"><span class="icon">📋</span> COPIAR DATOS</button>
+            </div>
+          </div>
+
+          <!-- CONTENEDOR DEL REPORTE VISUAL -->
+          <div id="div-resultado-reporte" class="reporte-visual-container">
+            
+            <!-- Encabezado Superior -->
+            <div class="reporte-header-top">
+              <h2>DESCARTE DE ARÁNDANOS</h2>
+              <div class="reporte-fecha-badge">
+                📅 Fecha de reporte: <span id="lbl-fecha-reporte">--/--/----</span>
+              </div>
+            </div>
+
+            <!-- EMPRESA 1: LARAMA -->
+            <div class="empresa-card empresa-larama">
+              <div class="empresa-title-wrapper">
+                <div class="empresa-indicator-line"></div>
+                <h3 class="empresa-title">LARAMA</h3>
+              </div>
+              <div class="empresa-grid">
+                <!-- Campo -->
+                <div class="tabla-box">
+                  <div class="subseccion-titulo">DESCARTE CAMPO</div>
+                  <table class="tabla-reporte-datos" id="tabla-larama-campo">
+                    <thead>
+                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Presentación</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- Packing -->
+                <div class="tabla-box">
+                  <div class="subseccion-titulo">DESCARTE PACKING</div>
+                  <table class="tabla-reporte-datos" id="tabla-larama-packing">
+                    <thead>
+                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Presentación</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- KPI Total -->
+                <div class="kpi-total-box">
+                  <div class="kpi-label">TOTAL LARAMA</div>
+                  <div class="kpi-monto" id="total-larama">0.000</div>
+                  <div class="kpi-unit">kg</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- EMPRESA 2: AGA -->
+            <div class="empresa-card empresa-aga">
+              <div class="empresa-title-wrapper">
+                <div class="empresa-indicator-line"></div>
+                <h3 class="empresa-title">AGA</h3>
+              </div>
+              <div class="empresa-grid">
+                <!-- Campo -->
+                <div class="tabla-box">
+                  <div class="subseccion-titulo">DESCARTE CAMPO</div>
+                  <table class="tabla-reporte-datos" id="tabla-aga-campo">
+                    <thead>
+                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Presentación</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- Packing -->
+                <div class="tabla-box">
+                  <div class="subseccion-titulo">DESCARTE PACKING</div>
+                  <table class="tabla-reporte-datos" id="tabla-aga-packing">
+                    <thead>
+                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Presentación</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- KPI Total -->
+                <div class="kpi-total-box">
+                  <div class="kpi-label">TOTAL AGA</div>
+                  <div class="kpi-monto" id="total-aga">0.000</div>
+                  <div class="kpi-unit">kg</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- EMPRESA 3: ARENUVA -->
+            <div class="empresa-card empresa-arenuva">
+              <div class="empresa-title-wrapper">
+                <div class="empresa-indicator-line"></div>
+                <h3 class="empresa-title">ARENUVA</h3>
+              </div>
+              <div class="empresa-grid">
+                <!-- Campo -->
+                <div class="tabla-box">
+                  <div class="subseccion-titulo">DESCARTE CAMPO</div>
+                  <table class="tabla-reporte-datos" id="tabla-arenuva-campo">
+                    <thead>
+                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Presentación</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- Packing -->
+                <div class="tabla-box">
+                  <div class="subseccion-titulo">DESCARTE PACKING</div>
+                  <table class="tabla-reporte-datos" id="tabla-arenuva-packing">
+                    <thead>
+                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Presentación</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- KPI Total -->
+                <div class="kpi-total-box">
+                  <div class="kpi-label">TOTAL ARENUVA</div>
+                  <div class="kpi-monto" id="total-arenuva">0.000</div>
+                  <div class="kpi-unit">kg</div>
+                </div>
+              </div>
+            </div>
+
+             <!-- BANNER INFERIOR TOTAL GENERAL -->
+   <div class="banner-total-general">
+      <div style="display: flex; align-items: center; gap: 15px;">
+    <span style="font-size: 24px;">⚖️</span>
+    <span class="titulo-total" style="font-weight: 800; letter-spacing: 1px;">TOTAL GENERAL KILOS</span>
+  </div>
+  <div>
+    <span class="monto-total" id="total-general-kilos" style="font-size: 32px; font-weight: 900;">0.000</span>
+    <span class="unit-total" style="font-size: 18px; font-weight: 600;">kg</span>
+  </div>
+</div>
+
+          </div>
+        </div>
+
+        <!-- PESTAÑA 3: CRUCE DE STOCKS -->
+        <div id="tab-cruce" class="tab-content">
+          <div class="report-filters" style="align-items: center;">
+            <div class="filter-group">
+              <label style="font-weight: bold; color: #819da7;">EMPRESA</label>
+              <select id="cruce-empresa" style="padding: 10px 15px; font-weight: bold; background: #819da7; color: white; border-radius: 6px; border: none; cursor: pointer;">
+                <option value="AGA">AGA</option>
+                <option value="LARAMA">LARAMA</option>
+                <option value="ARENUVA">ARENUVA</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="cruce-fecha-inicio">Fecha Inicio:</label>
+              <input type="date" id="cruce-fecha-inicio">
+            </div>
+            <div class="filter-group">
+              <label for="cruce-fecha-fin">Fecha Fin:</label>
+              <input type="date" id="cruce-fecha-fin">
+            </div>
+            <div class="button-group" style="margin-top: 18px;">
+              <button class="btn btn-buscar" onclick="buscarCruceStocks()"><span class="icon">🔄</span> BUSCAR</button>
+              <button class="btn btn-borrar" onclick="borrarCruce()"><span class="icon">🧹</span> BORRAR</button>
+              <button class="btn btn-copiar" onclick="copiarCruce()"><span class="icon">📋</span> COPIAR DATOS</button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 15px; flex-wrap: wrap; width: 100%;">
+            <!-- Bloque Descarte Campo -->
+            <div style="flex: 1; min-width: 45%; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <div style="background-color: #819da7; color: white; padding: 8px; font-weight: bold; text-align: center; border-radius: 6px 6px 0 0; text-transform: uppercase; font-size: 14px;">DESCARTE CAMPO</div>
+              <div style="overflow-x: auto; max-height: 400px;">
+                <table class="tabla-reporte-datos" id="tabla-cruce-campo" style="margin-top: 5px;">
+                  <thead>
+                    <tr><th>EMPRESA</th><th>CÓDIGO</th><th>FECHA</th><th>VARIEDAD</th><th>TIPO DE DESCARTE</th><th>TOTAL SISPACKING</th><th>TOTAL SAP</th><th>DIFERENCIA</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="8" class="placeholder-text" style="text-align:center; padding:20px;">Cargando comparativas de Campo...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Bloque Descarte Packing -->
+            <div style="flex: 1; min-width: 45%; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <div style="background-color: #819da7; color: white; padding: 8px; font-weight: bold; text-align: center; border-radius: 6px 6px 0 0; text-transform: uppercase; font-size: 14px;">DESCARTE PACKING</div>
+              <div style="overflow-x: auto; max-height: 400px;">
+                <table class="tabla-reporte-datos" id="tabla-cruce-packing" style="margin-top: 5px;">
+                  <thead>
+                    <tr><th>EMPRESA</th><th>CÓDIGO</th><th>FECHA</th><th>VARIEDAD</th><th>TIPO DE DESCARTE</th><th>TOTAL SISPACKING</th><th>TOTAL SAP</th><th>DIFERENCIA</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="8" class="placeholder-text" style="text-align:center; padding:20px;">Cargando comparativas de Packing...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+       <!-- TABLA DE STOCK TOTAL (UBICADA DENTRO DEL CRUCE DE STOCKS) -->
+          <div style="margin: 25px auto 0 auto; max-width: 900px; width: 100%;">
+            <div style="background-color: #819da7; color: white; padding: 10px; font-weight: bold; text-align: center; border-radius: 6px 6px 0 0; text-transform: uppercase;">
+              STOCK TOTAL EN SISTEMA POR VARIEDAD
+            </div>
+            <div style="overflow-x: auto; background-color: white; border: 1px solid #dee2e6; border-radius: 0 0 6px 6px;">
+              <table id="tabla-stock-total" class="tabla-reporte-datos" style="width: 100%; margin: 0 !important;">
+                <thead>
+                  <tr style="background-color: #f8f9fa;">
+                    <th style="text-align: center;">EMPRESA</th>
+                    <th style="text-align: center;">CÓDIGO</th>
+                    <th style="text-align: center;">VARIEDAD</th>
+                    <th style="text-align: center;">TIPO DE DESCARTE</th>
+                    <th style="text-align: right;">STOCK TOTAL (KG)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbodyStockTotal">
+                  <tr><td colspan="5" class="text-muted" style="padding: 15px; text-align: center;">Presione "BUSCAR" para obtener la información de stocks.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- PESTAÑA 4: GUIAS PROVISIONALES -->
+        <div id="tab-guias" class="tab-content">
+          <div class="report-filters" style="align-items: center; justify-content: space-between; display: flex; margin-bottom: 25px; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <label style="font-weight: bold; color: #819da7; margin: 0; font-size: 13px;">EMPRESA EMISORA</label>
+              <select id="reg-empresa" onchange="actualizarEmpresaEmisora()" style="padding: 10px 15px; font-weight: bold; background: #819da7; color: white; border-radius: 6px; border: none; cursor: pointer; font-size: 13px;">
+                <option value="">-- Seleccione Empresa --</option>
+                <option value="AGA">AGA</option>
+                <option value="LARAMA">LARAMA</option>
+                <option value="ARENUVA">ARENUVA</option>
+              </select>
+            </div>
+            
+            <div id="banner-emisor-fiscal" style="flex-grow: 1; margin: 0 30px; padding: 10px 15px; background: #f8fafc; border-left: 4px solid #2563eb; border-radius: 4px; display: none;">
+              <span id="txt-emisor-social" style="display: block; font-weight: 800; color: #1e293b; font-size: 13px;">-</span>
+              <span id="txt-emisor-ruc" style="display: block; font-weight: bold; color: #64748b; font-size: 11px;">RUC: -</span>
+            </div>
+            
+            <div class="reporte-visual-container" style="padding: 10px 20px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-radius: 6px;">
+              <span style="color: #64748b; font-size: 12px;">CORRELATIVO: </span>
+              <span id="txt-correlativo" style="color: #ef4444; font-size: 14px; font-weight: 800;">Cargando...</span>
+            </div>
+          </div>
+
+          <div class="reporte-visual-container" style="margin-bottom: 30px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; border-radius: 8px;">
+            <h3 style="color: #2563eb; margin-top: 0; margin-bottom: 22px; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; font-weight: 800;">Datos de la Nota de Entrega</h3>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+              <div>
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Cliente / Destinatario</label>
+                <input type="text" id="reg-cliente" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+              <div>
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Documento (RUC/DNI)</label>
+                <input type="text" id="reg-documento" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+              <div>
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Condición de Pago</label>
+                <input type="text" id="reg-condicion" value="CONTADO" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+              <div>
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Autorizado Por</label>
+                <input type="text" id="reg-autorizado" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+              <div>
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Fecha Emisión</label>
+                <input type="date" id="reg-fecha-emision" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+              <div>
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Fecha Vencimiento</label>
+                <input type="date" id="reg-fecha-vencimiento" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Dirección</label>
+                <input type="text" id="reg-direccion" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Observaciones</label>
+                <input type="text" id="reg-observaciones" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+            </div>
+          </div>
+
+          <div class="reporte-visual-container" style="padding: 0; overflow: hidden; margin-bottom: 30px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div style="background: #64748b; color: white; padding: 14px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 14px; font-weight: 700;">Detalle de Productos</span>
+              <button type="button" onclick="agregarFilaProducto();" style="padding: 8px 16px; background: white; color: #64748b; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">+ Añadir Fila</button>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse;" id="tabla-detalle-guias">
+              <thead>
+                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                  <th style="padding: 12px 10px; text-align: left; width: 25%; font-size: 12px; color: #475569;">Código Producto</th>
+                  <th style="padding: 12px 10px; text-align: left; width: 45%; font-size: 12px; color: #475569;">Descripción / Variedad</th>
+                  <th style="padding: 12px 10px; text-align: right; width: 15%; font-size: 12px; color: #475569;">Cantidad</th>
+                  <th style="padding: 12px 10px; text-align: center; width: 10%; font-size: 12px; color: #475569;">U.M.</th>
+                  <th style="width: 5%;"></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-detalle-guias">
+              </tbody>
+              <tfoot>
+                <tr style="background: #f1f5f9; font-weight: bold; border-top: 2px solid #cbd5e1;">
+                  <td colspan="2" style="padding: 14px; text-align: right; color: #1e293b; font-size: 13px;">TOTAL KILOS:</td>
+                  <td style="padding: 14px; text-align: right; color: #2563eb; font-size: 15px; font-weight: 900;" id="txt-total-kilos">0.000</td>
+                  <td colspan="2" style="padding: 14px; text-align: center; color: #1e293b; font-size: 13px;">KG</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 15px; margin-bottom: 40px;">
+            <button type="button" onclick="limpiarFormularioGuia();" style="padding: 12px 30px; background: #ef4444; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Borrar Todo</button>
+            <button type="button" onclick="procesarGuardadoGuia();" style="padding: 12px 30px; background: #22c55e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Guardar e Imprimir Nota</button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <?!= HtmlService.createHtmlOutputFromFile('JavaScript').getContent(); ?>
+  </body>
+</html>

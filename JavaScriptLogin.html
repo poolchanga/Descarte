@@ -1,0 +1,41 @@
+<script>
+  function ejecutarLogin() {
+    var usuario = document.getElementById('txt-usuario').value;
+    var contrasenia = document.getElementById('txt-pass').value;
+    var empresa = document.getElementById('select-empresa').value;
+    var mensajeDiv = document.getElementById('login-mensaje');
+    
+    if(usuario === "" || contrasenia === "") {
+      mensajeDiv.innerText = "Por favor, complete todos los campos.";
+      mensajeDiv.style.display = "block";
+      return;
+    }
+    
+    mensajeDiv.innerText = "Validando credenciales...";
+    mensajeDiv.className = "login-info";
+    mensajeDiv.style.display = "block";
+    
+    // Llamada síncrona/asíncrona al servidor (.gs)
+    google.script.run
+      .withSuccessHandler(function(resultado) {
+        if(resultado.exito) {
+          // Guardar datos de sesión localmente en el navegador del cliente
+          localStorage.setItem('sesion_usuario', resultado.usuario);
+          localStorage.setItem('sesion_empresa', resultado.empresa);
+          
+          // Reemplazar todo el cuerpo con la interfaz principal
+          google.script.run
+            .withSuccessHandler(function(htmlInterfaz) {
+              document.open();
+              document.write(htmlInterfaz);
+              document.close();
+            })
+            .cargarInterfazPrincipal();
+        } else {
+          mensajeDiv.innerText = resultado.mensaje;
+          mensajeDiv.className = "login-error";
+        }
+      })
+      .validarCredenciales(usuario, contrasenia, empresa);
+  }
+</script>
