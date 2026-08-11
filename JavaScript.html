@@ -43,7 +43,7 @@
 
   var datosReporteActual = [];
 
-function buscarReportes() {
+  function buscarReportes() {
     var fInicio = document.getElementById('fecha-inicio').value;
     var fFin = document.getElementById('fecha-fin').value;
     
@@ -125,11 +125,13 @@ function buscarReportes() {
               '<td style="text-align:right; font-weight:bold;">' + peso.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
             '</tr>';
           });
+
           // Fila Subtotal Campo
           htmlCampo += '<tr style="border-top: 2px solid #cbd5e1; font-weight: bold; background-color: #f8fafc;">' +
             '<td colspan="4" style="color: #475569; text-transform: uppercase;">TOTAL DESCARTE CAMPO</td>' +
             '<td style="text-align:right; font-weight:900;">' + subtotalCampo.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
           '</tr>';
+
           tbodyCampo.innerHTML = htmlCampo;
         }
       }
@@ -152,11 +154,13 @@ function buscarReportes() {
               '<td style="text-align:right; font-weight:bold;">' + peso.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
             '</tr>';
           });
+
           // Fila Subtotal Packing
           htmlPacking += '<tr style="border-top: 2px solid #cbd5e1; font-weight: bold; background-color: #f8fafc;">' +
             '<td colspan="4" style="color: #475569; text-transform: uppercase;">TOTAL DESCARTE PACKING</td>' +
             '<td style="text-align:right; font-weight:900;">' + subtotalPacking.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
           '</tr>';
+
           tbodyPacking.innerHTML = htmlPacking;
         }
       }
@@ -178,7 +182,7 @@ function buscarReportes() {
     }
   }
 
-  
+
   function renderizarTablasCruce(datos, stockTotal) {
     var tbodyCampo = document.querySelector('#tabla-cruce-campo tbody');
     var tbodyPacking = document.querySelector('#tabla-cruce-packing tbody');
@@ -203,12 +207,23 @@ function buscarReportes() {
         var difReal = valorSap - valorSispacking;
         sumaSispacking += valorSispacking;
         sumaSap += valorSap;
-        sumaDiferencia += difReal; 
+        sumaDiferencia += difReal;
 
-        if (difReal >= 0) { 
-          estiloCeldaDif += " background-color: #d4edda; color: #155724;";
+        /*
+         * DIFERENCIA:
+         * Positiva  = sobra       -> verde
+         * Negativa  = diferencia  -> rojo
+         * Cero      = neutro
+         *
+         * Se utiliza !important porque el CSS de Interfaz.html
+         * establece background:#ffffff !important para las celdas.
+         */
+        if (difReal > 0) {
+          estiloCeldaDif += " background-color: #d4edda !important; color: #155724 !important;";
+        } else if (difReal < 0) {
+          estiloCeldaDif += " background-color: #f8d7da !important; color: #721c24 !important;";
         } else {
-          estiloCeldaDif += " background-color: #f8d7da; color: #721c24;";
+          estiloCeldaDif += " background-color: #ffffff !important; color: #334155 !important;";
         }
 
         html += '<tr>' +
@@ -223,15 +238,20 @@ function buscarReportes() {
         '</tr>';
       });
 
-      var totalDifAbsoluta = parseFloat(Math.abs(sumaDiferencia).toFixed(3));
+      /*
+       * TOTAL DIFERENCIA:
+       * Positiva  = verde
+       * Negativa  = rojo
+       * Cero      = neutro
+       */
       var estiloTotalDif = "font-weight:bold; text-align:right;";
 
-      if (totalDifAbsoluta === 0) {
-        estiloTotalDif += " background-color: #d4edda; color: #155724;"; 
-      } else if (totalDifAbsoluta >= 1) {
-        estiloTotalDif += " background-color: #f8d7da; color: #721c24;"; 
+      if (sumaDiferencia > 0) {
+        estiloTotalDif += " background-color: #d4edda !important; color: #155724 !important;";
+      } else if (sumaDiferencia < 0) {
+        estiloTotalDif += " background-color: #f8d7da !important; color: #721c24 !important;";
       } else {
-        estiloTotalDif += " color: #000000; background-color: transparent;"; 
+        estiloTotalDif += " background-color: #ffffff !important; color: #334155 !important;";
       }
 
       html += '<tr style="background-color: #e2e8f0; font-weight: bold; border-top: 2px solid #cbd5e1;">' +
@@ -268,7 +288,8 @@ function buscarReportes() {
     }
   }
 
-function borrarReportes() {
+
+  function borrarReportes() {
     document.getElementById('fecha-inicio').value = "";
     document.getElementById('fecha-fin').value = "";
     document.getElementById('lbl-fecha-reporte').innerText = "--/--/----";
@@ -277,8 +298,10 @@ function borrarReportes() {
     empresas.forEach(function(emp) {
       var tbCampo = document.querySelector('#tabla-' + emp + '-campo tbody');
       var tbPacking = document.querySelector('#tabla-' + emp + '-packing tbody');
+
       if (tbCampo) tbCampo.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>';
       if (tbPacking) tbPacking.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>';
+
       var lblTot = document.getElementById('total-' + emp);
       if (lblTot) lblTot.innerText = "0.000";
     });
@@ -287,14 +310,18 @@ function borrarReportes() {
     datosReporteActual = [];
   }
 
+
   function copiarCruce() {
     if (datosCruceGlobal.length === 0) {
       alert("No hay datos cargados en el cruce para copiar.");
       return;
     }
+
     var txt = "EMPRESA\tCÓDIGO\tFECHA\tVARIEDAD\tTIPO DESCARTE\tSISPACKING (KG)\tSAP (KG)\tDIFERENCIA\n";
+
     datosCruceGlobal.forEach(function(r) {
       var codigoProducto = r.codigo || '-';
+
       txt += (r.empresa || '') + "\t" + 
              codigoProducto + "\t" + 
              (r.fecha || '') + "\t" + 
@@ -304,15 +331,17 @@ function borrarReportes() {
              (r.sap || 0) + "\t" + 
              (r.diferencia || 0) + "\n";
     });
-    
+
     var temp = document.createElement("textarea");
     temp.value = txt;
     document.body.appendChild(temp);
     temp.select();
     document.execCommand("copy");
     document.body.removeChild(temp);
+
     alert("¡Cruce de stocks copiado con éxito para Excel!");
   }
+
 
   // MÓDULO GUÍAS PROVISIONALES
   function inicializarModuloGuias() {
@@ -322,10 +351,12 @@ function borrarReportes() {
     document.getElementById('reg-observaciones').value = '';
     
     var tbody = document.getElementById('tbody-detalle-guias');
+
     if (tbody) {
       tbody.innerHTML = '';
       agregarFilaProducto();
     }
+
     if (document.getElementById('txt-total-kilos')) {
       document.getElementById('txt-total-kilos').innerText = "0.000";
     }
@@ -333,6 +364,7 @@ function borrarReportes() {
     google.script.run
       .withSuccessHandler(function(siguienteCorrelativo) {
         var lblCorr = document.getElementById('txt-correlativo');
+
         if (lblCorr) {
           lblCorr.innerText = siguienteCorrelativo;
         }
@@ -340,24 +372,30 @@ function borrarReportes() {
       .obtenerSiguienteCorrelativo();
   }
 
+
   function agregarFilaProducto() {
     var tbody = document.getElementById('tbody-detalle-guias');
     var tr = document.createElement('tr');
+
     tr.style.borderBottom = "1px solid #f1f5f9";
     
     tr.innerHTML = `
       <td style="padding: 8px 10px;">
         <input type="text" class="input-codigo-prod" oninput="escucharCambioCodigo(this)" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px;" placeholder="Escriba código...">
       </td>
+
       <td style="padding: 8px 10px;">
         <input type="text" class="input-desc-prod" style="width:100%; padding:8px; border:none; background:transparent; font-weight:bold; color:#334155; font-size:12px;" readonly value="Proceda a buscar...">
       </td>
+
       <td style="padding: 8px 10px;">
         <input type="number" class="input-cant-prod" oninput="calcularTotalKilosEnVivo()" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; text-align:right; font-size:12px; font-weight:bold;" value="0.000" step="0.001">
       </td>
+
       <td style="padding: 8px 10px;">
         <input type="text" style="width:100%; padding:8px; border:none; background:transparent; text-align:center; font-size:12px; color:#64748b;" value="KG" readonly>
       </td>
+
       <td style="text-align:center; padding: 8px 5px;">
         <button type="button" onclick="removerFilaYRecalcular(this);" style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; font-size:14px;">X</button>
       </td>
@@ -365,6 +403,7 @@ function borrarReportes() {
     
     tbody.appendChild(tr);
   }
+
 
   function escucharCambioCodigo(inputElement) {
     var codigoInput = inputElement.value.trim();
@@ -382,6 +421,7 @@ function borrarReportes() {
     google.script.run
       .withSuccessHandler(function(resultado) {
         descInput.value = resultado.descripcion;
+
         if (resultado.exito) {
           descInput.style.color = "#16a34a";
         } else {
@@ -391,6 +431,7 @@ function borrarReportes() {
       .buscarProductoPorCodigo(codigoInput);
   }
 
+
   function calcularTotalKilosEnVivo() {
     var total = 0;
     var camposCantidad = document.querySelectorAll('.input-cant-prod');
@@ -399,14 +440,16 @@ function borrarReportes() {
       var valor = parseFloat(input.value) || 0;
       total += valor;
     });
-    
+
     document.getElementById('txt-total-kilos').innerText = total.toFixed(3);
   }
+
 
   function removerFilaYRecalcular(boton) {
     boton.closest('tr').remove();
     calcularTotalKilosEnVivo();
   }
+
 
   function actualizarEmpresaEmisora() {
     var codEmpresa = document.getElementById('reg-empresa').value;
@@ -432,163 +475,184 @@ function borrarReportes() {
       .obtenerDatosEmpresaEmisora(codEmpresa);
   }
 
+
   function limpiarFormularioGuia() {
     if (confirm("¿Está seguro de limpiar todo el formulario de la guía actual?")) {
       inicializarModuloGuias();
     }
   }
 
-/**
- * Procesa el guardado de la Guía de Remisión y abre la ventana de impresión.
- */
-function procesarGuardadoGuia() {
-  var empresa = document.getElementById('select-empresa').value;
-  var correlativo = document.getElementById('input-correlativo').value;
-  var fecha = document.getElementById('input-fecha').value;
-  var chofer = document.getElementById('input-chofer').value;
-  var placa = document.getElementById('input-placa').value;
-  var observaciones = document.getElementById('input-observaciones').value;
 
-  if (!fecha || !chofer || !placa) {
-    alert("Por favor complete los campos obligatorios: Fecha, Chofer y Placa.");
-    return;
-  }
+  /**
+   * Procesa el guardado de la Guía de Remisión y abre la ventana de impresión.
+   */
+  function procesarGuardadoGuia() {
+    var empresa = document.getElementById('select-empresa').value;
+    var correlativo = document.getElementById('input-correlativo').value;
+    var fecha = document.getElementById('input-fecha').value;
+    var chofer = document.getElementById('input-chofer').value;
+    var placa = document.getElementById('input-placa').value;
+    var observaciones = document.getElementById('input-observaciones').value;
 
-  // Mapeo unificado de datos de empresa emisora
-  var datosEmpresas = {
-    "AGA": { ruc: "20505688903", razon: "AGRÍCOLA ANDREA S.A.C." },
-    "ARENUVA": { ruc: "20607519391", razon: "ARENUVA S.A.C." },
-    "LARAMA": { ruc: "20602842739", razon: "LARAMA BERRIES S.A.C." }
-  };
-
-  var infoEmpresa = datosEmpresas[empresa] || { ruc: "", razon: empresa };
-
-  // Recolección de productos ingresados en la tabla
-  var productos = [];
-  var filas = document.querySelectorAll('#tbody-productos-guia tr');
-  
-  filas.forEach(function(fila) {
-    var codigo = fila.querySelector('.input-cod-prod') ? fila.querySelector('.input-cod-prod').value : '';
-    var descripcion = fila.querySelector('.input-desc-prod') ? fila.querySelector('.input-desc-prod').value : '';
-    var cantidad = fila.querySelector('.input-cant-prod') ? fila.querySelector('.input-cant-prod').value : 0;
-    var um = fila.querySelector('.select-um-prod') ? fila.querySelector('.select-um-prod').value : 'NIU';
-
-    if (descripcion.trim() !== '' && cantidad > 0) {
-      productos.push({
-        codigo: codigo,
-        descripcion: descripcion,
-        cantidad: parseFloat(cantidad),
-        um: um
-      });
+    if (!fecha || !chofer || !placa) {
+      alert("Por favor complete los campos obligatorios: Fecha, Chofer y Placa.");
+      return;
     }
-  });
 
-  if (productos.length === 0) {
-    alert("Debe agregar al menos un producto con descripción y cantidad mayor a 0.");
-    return;
+    // Mapeo unificado de datos de empresa emisora
+    var datosEmpresas = {
+      "AGA": { ruc: "20505688903", razon: "AGRÍCOLA ANDREA S.A.C." },
+      "ARENUVA": { ruc: "20607519391", razon: "ARENUVA S.A.C." },
+      "LARAMA": { ruc: "20602842739", razon: "LARAMA BERRIES S.A.C." }
+    };
+
+    var infoEmpresa = datosEmpresas[empresa] || { ruc: "", razon: empresa };
+
+    // Recolección de productos ingresados en la tabla
+    var productos = [];
+    var filas = document.querySelectorAll('#tbody-productos-guia tr');
+    
+    filas.forEach(function(fila) {
+      var codigo = fila.querySelector('.input-cod-prod') ? fila.querySelector('.input-cod-prod').value : '';
+      var descripcion = fila.querySelector('.input-desc-prod') ? fila.querySelector('.input-desc-prod').value : '';
+      var cantidad = fila.querySelector('.input-cant-prod') ? fila.querySelector('.input-cant-prod').value : 0;
+      var um = fila.querySelector('.select-um-prod') ? fila.querySelector('.select-um-prod').value : 'NIU';
+
+      if (descripcion.trim() !== '' && cantidad > 0) {
+        productos.push({
+          codigo: codigo,
+          descripcion: descripcion,
+          cantidad: parseFloat(cantidad),
+          um: um
+        });
+      }
+    });
+
+    if (productos.length === 0) {
+      alert("Debe agregar al menos un producto con descripción y cantidad mayor a 0.");
+      return;
+    }
+
+    var payload = {
+      empresaCodigo: empresa,
+      empresaRuc: infoEmpresa.ruc,
+      empresaRazon: infoEmpresa.razon,
+      correlativo: correlativo,
+      fecha: fecha,
+      chofer: chofer,
+      placa: placa,
+      observaciones: observaciones,
+      productos: productos
+    };
+
+    // Mostrar indicador de carga
+    mostrarCargando(true);
+
+    // Guardar en Apps Script Backend
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        mostrarCargando(false);
+
+        if (respuesta && respuesta.exito) {
+          alert("¡Guía guardada exitosamente con el correlativo: " + respuesta.correlativo + "!");
+          
+          // Abrir la ventana de impresión con los datos procesados
+          imprimirGuia(payload);
+          
+          // Limpiar el formulario o recargar correlativo
+          limpiarFormularioGuia();
+        } else {
+          alert("Error al guardar la guía: " + (respuesta.mensaje || "Error desconocido."));
+        }
+      })
+      .withFailureHandler(function(err) {
+        mostrarCargando(false);
+        alert("Error en el servidor: " + err.message);
+      })
+      .guardarGuiaProvisional(payload);
   }
 
-  var payload = {
-    empresaCodigo: empresa,
-    empresaRuc: infoEmpresa.ruc,
-    empresaRazon: infoEmpresa.razon,
-    correlativo: correlativo,
-    fecha: fecha,
-    chofer: chofer,
-    placa: placa,
-    observaciones: observaciones,
-    productos: productos
-  };
 
-  // Mostrar indicador de carga
-  mostrarCargando(true);
-
-  // Guardar en Apps Script Backend
-  google.script.run
-    .withSuccessHandler(function(respuesta) {
-      mostrarCargando(false);
-      if (respuesta && respuesta.exito) {
-        alert("¡Guía guardada exitosamente con el correlativo: " + respuesta.correlativo + "!");
-        
-        // Abrir la ventana de impresión con los datos procesados
-        imprimirGuia(payload);
-        
-        // Limpiar el formulario o recargar correlativo
-        limpiarFormularioGuia();
-      } else {
-        alert("Error al guardar la guía: " + (respuesta.mensaje || "Error desconocido."));
-      }
-    })
-    .withFailureHandler(function(err) {
-      mostrarCargando(false);
-      alert("Error en el servidor: " + err.message);
-    })
-    .guardarGuiaProvisional(payload);
-}
-
-/**
- * Genera la vista previa / ventana de impresión de la guía.
- */
-function imprimirGuia(datos) {
-  google.script.run
-    .withSuccessHandler(function(htmlContent) {
-      var ventana = window.open('', '_blank', 'width=900,height=700');
-      ventana.document.write(htmlContent);
-      ventana.document.close();
-    })
-    .generarHtmlImpresionGuia(datos);
-}
-// Variable global para almacenar el cruce y poder copiarlo a Excel
-var datosCruceGlobal = [];
-
-function buscarCruceStocks() {
-  var empresa = document.getElementById('cruce-empresa').value;
-  var fInicio = document.getElementById('cruce-fecha-inicio').value;
-  var fFin = document.getElementById('cruce-fecha-fin').value;
-
-  if (!fInicio || !fFin) {
-    alert("Por favor, seleccione ambas fechas para realizar la búsqueda.");
-    return;
+  /**
+   * Genera la vista previa / ventana de impresión de la guía.
+   */
+  function imprimirGuia(datos) {
+    google.script.run
+      .withSuccessHandler(function(htmlContent) {
+        var ventana = window.open('', '_blank', 'width=900,height=700');
+        ventana.document.write(htmlContent);
+        ventana.document.close();
+      })
+      .generarHtmlImpresionGuia(datos);
   }
 
-  // Mensaje visual de carga en las tablas
-  var tbodyCampo = document.querySelector('#tabla-cruce-campo tbody');
-  var tbodyPacking = document.querySelector('#tabla-cruce-packing tbody');
-  
-  if (tbodyCampo) tbodyCampo.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">🔍 Cargando datos de Campo...</td></tr>';
-  if (tbodyPacking) tbodyPacking.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">🔍 Cargando datos de Packing...</td></tr>';
 
-  // Llamada al backend (Código.gs -> obtenerCruceStocks)
-  google.script.run
-    .withSuccessHandler(function(respuesta) {
-      if (!respuesta.exito) {
-        alert("❌ " + respuesta.mensaje);
-        return;
-      }
+  // Variable global para almacenar el cruce y poder copiarlo a Excel
+  var datosCruceGlobal = [];
 
-      datosCruceGlobal = respuesta.datos || [];
-      
-      // Llamamos a la función que ya tienes programada para pintar los datos
-      renderizarTablasCruce(respuesta.datos, respuesta.stockTotal);
-    })
-    .withFailureHandler(function(err) {
-      alert("Error en el servidor: " + err.message);
-    })
-    .obtenerCruceStocks(empresa, fInicio, fFin);
-}
 
-function borrarCruce() {
-  document.getElementById('cruce-fecha-inicio').value = "";
-  document.getElementById('cruce-fecha-fin').value = "";
-  
-  var tbodyCampo = document.querySelector('#tabla-cruce-campo tbody');
-  var tbodyPacking = document.querySelector('#tabla-cruce-packing tbody');
-  var tbodyStock = document.getElementById('tbodyStockTotal');
+  function buscarCruceStocks() {
+    var empresa = document.getElementById('cruce-empresa').value;
+    var fInicio = document.getElementById('cruce-fecha-inicio').value;
+    var fFin = document.getElementById('cruce-fecha-fin').value;
 
-  if (tbodyCampo) tbodyCampo.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Cargando comparativas de Campo...</td></tr>';
-  if (tbodyPacking) tbodyPacking.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Cargando comparativas de Packing...</td></tr>';
-  if (tbodyStock) tbodyStock.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px;" class="text-muted">Presione "BUSCAR" para obtener la información de stocks.</td></tr>';
+    if (!fInicio || !fFin) {
+      alert("Por favor, seleccione ambas fechas para realizar la búsqueda.");
+      return;
+    }
 
-  datosCruceGlobal = [];
-}
+    // Mensaje visual de carga en las tablas
+    var tbodyCampo = document.querySelector('#tabla-cruce-campo tbody');
+    var tbodyPacking = document.querySelector('#tabla-cruce-packing tbody');
+    
+    if (tbodyCampo) {
+      tbodyCampo.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">🔍 Cargando datos de Campo...</td></tr>';
+    }
+
+    if (tbodyPacking) {
+      tbodyPacking.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">🔍 Cargando datos de Packing...</td></tr>';
+    }
+
+    // Llamada al backend (Código.gs -> obtenerCruceStocks)
+    google.script.run
+      .withSuccessHandler(function(respuesta) {
+        if (!respuesta.exito) {
+          alert("❌ " + respuesta.mensaje);
+          return;
+        }
+
+        datosCruceGlobal = respuesta.datos || [];
+        
+        // Llamamos a la función que ya tienes programada para pintar los datos
+        renderizarTablasCruce(respuesta.datos, respuesta.stockTotal);
+      })
+      .withFailureHandler(function(err) {
+        alert("Error en el servidor: " + err.message);
+      })
+      .obtenerCruceStocks(empresa, fInicio, fFin);
+  }
+
+
+  function borrarCruce() {
+    document.getElementById('cruce-fecha-inicio').value = "";
+    document.getElementById('cruce-fecha-fin').value = "";
+    
+    var tbodyCampo = document.querySelector('#tabla-cruce-campo tbody');
+    var tbodyPacking = document.querySelector('#tabla-cruce-packing tbody');
+    var tbodyStock = document.getElementById('tbodyStockTotal');
+
+    if (tbodyCampo) {
+      tbodyCampo.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Cargando comparativas de Campo...</td></tr>';
+    }
+
+    if (tbodyPacking) {
+      tbodyPacking.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">Cargando comparativas de Packing...</td></tr>';
+    }
+
+    if (tbodyStock) {
+      tbodyStock.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px;" class="text-muted">Presione "BUSCAR" para obtener la información de stocks.</td></tr>';
+    }
+
+    datosCruceGlobal = [];
+  }
 </script>
