@@ -23,7 +23,7 @@
 body {
   background-color: var(--bg-light) !important;
   color: var(--text-main);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: inherit;
   margin: 0;
 }
   
@@ -146,7 +146,7 @@ input[type="date"]:focus {
 .login-info { color: var(--primary); margin-top: 15px; font-size: 14px; text-align: center; display: none; }
 
 /* ESTILOS DEL DASHBOARD PRINCIPAL */
-.dashboard-body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0; display: flex; background-color: var(--bg-light); height: 100vh; overflow: hidden; }
+.dashboard-body {font-family: inherit, system-ui, -apple-system, sans-serif; margin: 0; display: flex; background-color: var(--bg-light); height: 100vh; overflow: hidden; }
 .sidebar { width: 260px; background-color: var(--bg-dark); color: var(--white); display: flex; flex-direction: column; justify-content: space-between; }
 .sidebar-profile { padding: 30px 20px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
 .profile-avatar { font-size: 40px; margin-bottom: 10px; }
@@ -232,7 +232,7 @@ input[type="date"]:focus {
   box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
   min-height: 200px; 
   border: 1px solid var(--soft-border); 
-  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-family: inherit;
 }
 
 /* Encabezado del Reporte */
@@ -332,14 +332,14 @@ input[type="date"]:focus {
   letter-spacing: 0.5px;
 }
 
-/* Tablas compactas */
-.tabla-reporte-datos {
+/* Tablas compactas SOLO DEL REPORTE */
+#div-resultado-reporte .tabla-reporte-datos {
   width: 100%;
   border-collapse: collapse;
   font-size: 11px;
 }
 
-.tabla-reporte-datos th {
+#div-resultado-reporte .tabla-reporte-datos th {
   color: #64748b;
   font-weight: 700;
   text-align: left;
@@ -347,7 +347,7 @@ input[type="date"]:focus {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.tabla-reporte-datos td {
+#div-resultado-reporte .tabla-reporte-datos td {
   padding: 5px 6px;
   color: #1e293b;
   border-bottom: 1px solid #c9ced4;
@@ -429,7 +429,7 @@ input[type="date"]:focus {
 }
 
 .banner-total-general .monto-total {
-  font-size: 32px;
+  font-size: 42px;
   font-weight: 900;
 }
 
@@ -581,9 +581,9 @@ input[type="date"]:focus {
 .tabla-reporte-datos {
   width: 100% !important;
   border-collapse: collapse !important;
-  table-layout: auto !important;
+  table-layout: fixed !important;
   margin: 0 !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
 }
 
 .tabla-reporte-datos th {
@@ -591,26 +591,56 @@ input[type="date"]:focus {
   background: #ffffff !important;
   font-weight: 800 !important;
   text-align: left !important;
-  padding: 7px 8px !important;
+  padding: 6px 6px !important;
   border-bottom: 1px solid #dbe3e8 !important;
   white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
 }
 
 .tabla-reporte-datos td {
-  padding: 7px 8px !important;
+  padding: 6px 6px !important;
   color: #334155 !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
   font-weight: 600 !important;
   border-bottom: 1px solid #e5e9ed !important;
   white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
   line-height: 1.15 !important;
 }
 
-.tabla-reporte-datos th:last-child,
-.tabla-reporte-datos td:last-child {
+/* Distribución fija de las columnas */
+.tabla-reporte-datos th:nth-child(1),
+.tabla-reporte-datos td:nth-child(1) {
+  width: 15% !important;
+}
+
+.tabla-reporte-datos th:nth-child(2),
+.tabla-reporte-datos td:nth-child(2) {
+  width: 25% !important;
+}
+
+.tabla-reporte-datos th:nth-child(3),
+.tabla-reporte-datos td:nth-child(3) {
+  width: 28% !important;
+}
+
+.tabla-reporte-datos th:nth-child(4),
+.tabla-reporte-datos td:nth-child(4) {
+  width: 17% !important;
+}
+
+.tabla-reporte-datos th:nth-child(5),
+.tabla-reporte-datos td:nth-child(5) {
+  width: 15% !important;
   text-align: right !important;
-  min-width: 90px !important;
-  padding-right: 10px !important;
+  padding-right: 8px !important;
+}
+
+/* Evitar desplazamiento horizontal */
+.tabla-box {
+  overflow-x: hidden !important;
 }
 
 /* Fila de subtotal */
