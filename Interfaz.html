@@ -73,56 +73,44 @@
         font-size: 11px !important;
       }
 
-      .banner-total-general {
-        background-color: #fff2cc !important;
-        border: 3px solid #ffd966 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 20px !important;
-        border-radius: 8px !important;
-        margin: 25px auto 10px auto !important;
-        max-width: 500px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
-        text-align: center !important;
-      }
+      /* Estilo visual del banner TOTAL GENERAL */
+.banner-total-general {
+  background-color: #fff2cc !important;
+  border: 1px solid #ffd966 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 55px !important;
+  padding: 15px 30px !important;
+  border-radius: 7px !important;
+  margin: 12px 0 0 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+  min-height: 85px !important;
+  box-shadow: none !important;
+  text-align: left !important;
+}
 
-      #div-resultado-reporte .banner-total-general,
-      #div-resultado-reporte .banner-total-general * {
-        font-size: unset !important;
-      }
+.banner-total-general .titulo-total {
+  color: #20354d !important;
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+}
 
-      .banner-total-general {
-        background-color: #fff2cc !important;
-        border: 2px solid #ffd966 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 12px 25px !important;
-        border-radius: 6px !important;
-        margin: 15px auto 5px auto !important;
-        max-width: 400px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
-      }
+.banner-total-general .monto-total {
+  color: #20354d !important;
+  font-size: 34px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
 
-      .banner-total-general span:first-child {
-        font-size: 15px !important; 
-        letter-spacing: 1px !important;
-        color: #7f6000 !important;
-        font-weight: 800 !important;
-        margin-bottom: 4px !important;
-        text-transform: uppercase !important;
-      }
-
-      .banner-total-general span:last-child {
-        font-size: 26px !important; 
-        font-weight: 900 !important;
-        color: #7f6000 !important;
-        line-height: 1.1 !important;
-        display: block !important;
-      }
+.banner-total-general .unit-total {
+  color: #20354d !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
     </style>
   </head>
   <body class="dashboard-body">

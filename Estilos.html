@@ -445,83 +445,293 @@ input[type="date"]:focus {
 }
 
 /* ==========================================
-   AJUSTE DE TAMAÑO Y PROPORCIÓN COMPACTA
+   REPORTE VISUAL - DISEÑO EJECUTIVO
    ========================================== */
 
-/* 2. Solución definitiva para que la columna Peso Neto no se corte */
+/* Contenedor general */
+#div-resultado-reporte {
+  max-width: 1420px !important;
+  margin: 5px auto !important;
+  padding: 10px !important;
+  box-sizing: border-box !important;
+}
+
+/* Encabezado superior */
+.reporte-header-top {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+  padding: 14px 18px !important;
+  min-height: 60px !important;
+  background: #6f8793 !important;
+  border: none !important;
+  border-radius: 7px !important;
+  box-sizing: border-box !important;
+}
+
+.reporte-header-top h2 {
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-size: 27px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.reporte-fecha-badge {
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* Tarjeta principal de cada empresa */
+.empresa-card {
+  margin-bottom: 10px !important;
+  padding: 15px 20px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+}
+
+/* Título de empresa */
+.empresa-title-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 10px !important;
+}
+
+.empresa-indicator-line {
+  width: 4px !important;
+  height: 20px !important;
+  border-radius: 2px !important;
+}
+
+.empresa-title {
+  margin: 0 !important;
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+
+/* Colores por empresa */
+.empresa-larama .empresa-indicator-line {
+  background-color: #0f5d8c !important;
+}
+
+.empresa-larama .empresa-title {
+  color: #174f73 !important;
+}
+
+.empresa-aga .empresa-indicator-line {
+  background-color: #6b21a8 !important;
+}
+
+.empresa-aga .empresa-title {
+  color: #5b2a86 !important;
+}
+
+.empresa-arenuva .empresa-indicator-line {
+  background-color: #15803d !important;
+}
+
+.empresa-arenuva .empresa-title {
+  color: #187345 !important;
+}
+
+/* Distribución: Campo | Packing | Total */
 .empresa-grid {
   display: grid !important;
-  /* Asigna espacio proporcional y le reduce ancho a la tarjeta total */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 130px !important;
-  gap: 15px !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 180px !important;
+  gap: 18px !important;
   align-items: stretch !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* SOLUCIÓN ANCHO DE TABLAS Y PESO NETO */
+/* Cajas de las tablas */
 .tabla-box {
-  overflow-x: auto !important; /* Si la pantalla es muy pequeña, permite scroll limpio */
+  background: #ffffff !important;
+  border: 1px solid #e1e7eb !important;
+  border-radius: 6px !important;
+  padding: 0 !important;
+  overflow-x: auto !important;
+  box-sizing: border-box !important;
 }
 
+/* Encabezados DESCARTE CAMPO / PACKING */
+.subseccion-titulo {
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  background: #718995 !important;
+  color: #ffffff !important;
+  border-radius: 6px 6px 0 0 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+  box-sizing: border-box !important;
+}
+
+/* Tablas */
 .tabla-reporte-datos {
   width: 100% !important;
+  border-collapse: collapse !important;
   table-layout: auto !important;
-}
-
-.tabla-reporte-datos th,
-.tabla-reporte-datos td {
-  white-space: nowrap !important; /* Mantiene textos en 1 sola línea */
-  padding: 4px 6px !important;    /* Espaciado óptimo */
+  margin: 0 !important;
   font-size: 11px !important;
 }
 
-/* Forzar que la columna de Peso Neto tenga su propio espacio sin cortarse */
+.tabla-reporte-datos th {
+  color: #334e68 !important;
+  background: #ffffff !important;
+  font-weight: 800 !important;
+  text-align: left !important;
+  padding: 7px 8px !important;
+  border-bottom: 1px solid #dbe3e8 !important;
+  white-space: nowrap !important;
+}
+
+.tabla-reporte-datos td {
+  padding: 7px 8px !important;
+  color: #334155 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid #e5e9ed !important;
+  white-space: nowrap !important;
+  line-height: 1.15 !important;
+}
+
 .tabla-reporte-datos th:last-child,
 .tabla-reporte-datos td:last-child {
   text-align: right !important;
-  min-width: 85px !important; /* Reserva 85px fijos para que el peso NUNCA se corte */
+  min-width: 90px !important;
   padding-right: 10px !important;
 }
 
-/* Si un bloque no tiene datos, se oculta completamente */
-.card-descarte-box.oculto {
-  display: none !important;
+/* Fila de subtotal */
+.tabla-reporte-datos tr:last-child td {
+  background: #f8fafb !important;
+  border-top: 1px solid #cbd5e1 !important;
+  font-weight: 900 !important;
 }
 
-/* 3. Tarjeta Lateral de Totales */
+/* KPI lateral */
 .kpi-total-box {
   width: 100% !important;
+  min-height: 150px !important;
   height: 100% !important;
   box-sizing: border-box !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
   align-items: center !important;
+  text-align: center !important;
   border-radius: 8px !important;
-  padding: 15px 10px !important;
+  padding: 20px 10px !important;
   margin: 0 !important;
 }
 
-/* 4. Restaurar el Banner Inferior Azul Marino */
+.empresa-larama .kpi-total-box {
+  background-color: #edf5f9 !important;
+  color: #14557d !important;
+}
+
+.empresa-aga .kpi-total-box {
+  background-color: #f5effa !important;
+  color: #5b2a86 !important;
+}
+
+.empresa-arenuva .kpi-total-box {
+  background-color: #eef8f1 !important;
+  color: #187345 !important;
+}
+
+.kpi-total-box .kpi-label {
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+  margin-bottom: 12px !important;
+}
+
+.kpi-total-box .kpi-monto {
+  font-size: 27px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+.kpi-total-box .kpi-unit {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  margin-top: 7px !important;
+}
+
+/* Banner inferior TOTAL GENERAL */
 .banner-total-general {
-  background-color: #0b1e36 !important;
-  color: #ffffff !important;
-  border-radius: 6px !important;
+  background: #fff2cc !important;
+  color: #20354d !important;
+  border: 1px solid #ffd966 !important;
+  border-radius: 7px !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: center !important;
+  gap: 55px !important;
   padding: 15px 30px !important;
-  margin-top: 25px !important;
+  margin: 12px 0 0 0 !important;
   width: 100% !important;
+  max-width: none !important;
+  min-height: 85px !important;
   box-sizing: border-box !important;
+  box-shadow: none !important;
+  text-align: left !important;
 }
 
-.banner-total-general .titulo-total,
-.banner-total-general .monto-total,
+.banner-total-general .titulo-total {
+  color: #20354d !important;
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+}
+
+.banner-total-general .monto-total {
+  color: #20354d !important;
+  font-size: 34px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
 .banner-total-general .unit-total {
-  color: #ffffff !important;
+  color: #20354d !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
 }
 
+/* Mantener el reporte compacto en pantallas pequeñas */
+@media (max-width: 950px) {
+  .empresa-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kpi-total-box {
+    min-height: 100px !important;
+  }
+
+  .banner-total-general {
+    flex-direction: column !important;
+    gap: 8px !important;
+    text-align: center !important;
+  }
+
+  .reporte-header-top {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+}
 
 </style>
