@@ -1,0 +1,726 @@
+<!-- ============================================================
+     MÓDULO VENTAS
+     Registro y búsqueda de ventas
+     ============================================================ -->
+
+<div id="tab-ventas" class="tab-content">
+
+  <style>
+    /* ==========================================================
+       ESTILOS EXCLUSIVOS DEL MÓDULO VENTAS
+       ========================================================== */
+
+    #tab-ventas {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #tab-ventas .ventas-contenedor {
+      width: 100%;
+      max-width: 1250px;
+      margin: 0 auto;
+      padding: 5px 0 30px 0;
+      box-sizing: border-box;
+    }
+
+    #tab-ventas .ventas-card {
+      background: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    #tab-ventas .ventas-card-header {
+      background: #819da7;
+      color: #ffffff;
+      padding: 13px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    #tab-ventas .ventas-card-header h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    #tab-ventas .ventas-card-header span {
+      font-size: 18px;
+    }
+
+    #tab-ventas .ventas-card-body {
+      padding: 22px;
+    }
+
+    /* DATOS GENERALES */
+
+    #tab-ventas .ventas-grid-datos {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1.5fr;
+      gap: 18px;
+      align-items: end;
+    }
+
+    #tab-ventas .ventas-campo {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #tab-ventas .ventas-campo label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #475569;
+      text-transform: uppercase;
+    }
+
+    #tab-ventas .ventas-campo input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #334155;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    #tab-ventas .ventas-campo input:focus {
+      border-color: #819da7;
+      box-shadow: 0 0 0 2px rgba(129,157,167,0.12);
+    }
+
+    #tab-ventas .ventas-campo input::placeholder {
+      color: #94a3b8;
+    }
+
+    /* DETALLE */
+
+    #tab-ventas .ventas-detalle-wrapper {
+      overflow-x: auto;
+    }
+
+    #tab-ventas .ventas-tabla {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+
+    #tab-ventas .ventas-tabla thead th {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 11px 10px;
+      border-bottom: 2px solid #cbd5e1;
+      text-align: left;
+    }
+
+    #tab-ventas .ventas-tabla thead th:nth-child(1) {
+      width: 25%;
+    }
+
+    #tab-ventas .ventas-tabla thead th:nth-child(2) {
+      width: 45%;
+    }
+
+    #tab-ventas .ventas-tabla thead th:nth-child(3) {
+      width: 20%;
+      text-align: right;
+    }
+
+    #tab-ventas .ventas-tabla thead th:nth-child(4) {
+      width: 10%;
+      text-align: center;
+    }
+
+    #tab-ventas .ventas-tabla tbody tr {
+      border-bottom: 1px solid #edf2f7;
+    }
+
+    #tab-ventas .ventas-tabla tbody td {
+      padding: 8px 10px;
+      vertical-align: middle;
+    }
+
+    #tab-ventas .ventas-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      font-size: 12px;
+      color: #334155;
+      outline: none;
+    }
+
+    #tab-ventas .ventas-input:focus {
+      border-color: #819da7;
+      box-shadow: 0 0 0 2px rgba(129,157,167,0.10);
+    }
+
+    #tab-ventas .ventas-input-variedad {
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 700;
+    }
+
+    #tab-ventas .ventas-input-kg {
+      text-align: right;
+      font-weight: 700;
+    }
+
+    #tab-ventas .ventas-btn-eliminar {
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 5px;
+      background: #fee2e2;
+      color: #dc2626;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #tab-ventas .ventas-btn-eliminar:hover {
+      background: #fecaca;
+    }
+
+    #tab-ventas .ventas-btn-agregar {
+      margin-top: 12px;
+      padding: 9px 15px;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #tab-ventas .ventas-btn-agregar:hover {
+      background: #e2e8f0;
+    }
+
+    /* TOTAL */
+
+    #tab-ventas .ventas-total {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 10px 5px 10px;
+      border-top: 2px solid #e2e8f0;
+      margin-top: 10px;
+    }
+
+    #tab-ventas .ventas-total-label {
+      color: #475569;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    #tab-ventas .ventas-total-valor {
+      min-width: 130px;
+      text-align: right;
+      color: #547071;
+      font-size: 19px;
+      font-weight: 900;
+    }
+
+    #tab-ventas .ventas-total-unidad {
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* BOTONES */
+
+    #tab-ventas .ventas-acciones {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    #tab-ventas .ventas-btn {
+      padding: 11px 22px;
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #tab-ventas .ventas-btn-guardar {
+      background: #547071;
+      color: #ffffff;
+    }
+
+    #tab-ventas .ventas-btn-guardar:hover {
+      background: #456062;
+    }
+
+    #tab-ventas .ventas-btn-limpiar {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    #tab-ventas .ventas-btn-limpiar:hover {
+      background: #dc2626;
+    }
+
+    /* BÚSQUEDA */
+
+    #tab-ventas .ventas-busqueda {
+      display: flex;
+      align-items: flex-end;
+      gap: 15px;
+    }
+
+    #tab-ventas .ventas-busqueda-campo {
+      flex: 1;
+      max-width: 500px;
+    }
+
+    #tab-ventas .ventas-btn-buscar {
+      background: #819da7;
+      color: #ffffff;
+      padding: 10px 24px;
+    }
+
+    #tab-ventas .ventas-btn-buscar:hover {
+      background: #688391;
+    }
+
+    /* RESULTADO */
+
+    #tab-ventas .ventas-resultado {
+      margin-top: 20px;
+      display: none;
+    }
+
+    #tab-ventas .ventas-resultado.visible {
+      display: block;
+    }
+
+    #tab-ventas .ventas-info-resultado {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1.5fr;
+      gap: 15px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+
+    #tab-ventas .ventas-info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #tab-ventas .ventas-info-label {
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    #tab-ventas .ventas-info-valor {
+      color: #334155;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    #tab-ventas .ventas-mensaje {
+      display: none;
+      padding: 12px 15px;
+      margin-top: 15px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    #tab-ventas .ventas-mensaje.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    #tab-ventas .ventas-mensaje.exito {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    /* RESPONSIVE */
+
+    @media (max-width: 1000px) {
+      #tab-ventas .ventas-grid-datos,
+      #tab-ventas .ventas-info-resultado {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 650px) {
+      #tab-ventas .ventas-grid-datos,
+      #tab-ventas .ventas-info-resultado {
+        grid-template-columns: 1fr;
+      }
+
+      #tab-ventas .ventas-busqueda {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      #tab-ventas .ventas-busqueda-campo {
+        max-width: none;
+      }
+
+      #tab-ventas .ventas-acciones {
+        flex-direction: column;
+      }
+
+      #tab-ventas .ventas-btn {
+        width: 100%;
+      }
+    }
+  </style>
+
+
+  <div class="ventas-contenedor">
+
+    <!-- ========================================================
+         BLOQUE 1: REGISTRO DE VENTA
+         ======================================================== -->
+
+    <div class="ventas-card">
+
+      <div class="ventas-card-header">
+        <h3>REGISTRO DE VENTA</h3>
+        <span>🛒</span>
+      </div>
+
+      <div class="ventas-card-body">
+
+        <!-- DATOS GENERALES -->
+
+        <div class="ventas-grid-datos">
+
+          <div class="ventas-campo">
+            <label for="venta-correlativo">Correlativo</label>
+            <input
+              type="text"
+              id="venta-correlativo"
+              placeholder="Ingrese correlativo"
+            >
+          </div>
+
+          <div class="ventas-campo">
+            <label for="venta-fecha">Fecha de despacho</label>
+            <input
+              type="date"
+              id="venta-fecha"
+            >
+          </div>
+
+          <div class="ventas-campo">
+            <label for="venta-ruc">RUC</label>
+            <input
+              type="text"
+              id="venta-ruc"
+              placeholder="Ingrese RUC"
+            >
+          </div>
+
+          <div class="ventas-campo">
+            <label for="venta-cliente">Cliente</label>
+            <input
+              type="text"
+              id="venta-cliente"
+              placeholder="Ingrese cliente"
+            >
+          </div>
+
+        </div>
+
+
+        <!-- DETALLE DE PRODUCTOS -->
+
+        <div style="margin-top: 25px;">
+
+          <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:10px;
+          ">
+            <div style="
+              color:#475569;
+              font-size:13px;
+              font-weight:800;
+              text-transform:uppercase;
+            ">
+              Detalle de venta
+            </div>
+          </div>
+
+          <div class="ventas-detalle-wrapper">
+
+            <table class="ventas-tabla">
+
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Variedad</th>
+                  <th style="text-align:right;">KG Total</th>
+                  <th style="text-align:center;">Acción</th>
+                </tr>
+              </thead>
+
+              <tbody id="tbody-ventas-detalle">
+                <!-- Las filas se agregarán mediante JavaScript -->
+              </tbody>
+
+            </table>
+
+          </div>
+
+          <button
+            type="button"
+            class="ventas-btn-agregar"
+            onclick="agregarFilaVenta();"
+          >
+            + AGREGAR PRODUCTO
+          </button>
+
+
+          <div class="ventas-total">
+            <span class="ventas-total-label">
+              Total venta
+            </span>
+
+            <span
+              class="ventas-total-valor"
+              id="venta-total-kilos"
+            >
+              0.000
+            </span>
+
+            <span class="ventas-total-unidad">
+              KG
+            </span>
+          </div>
+
+        </div>
+
+
+        <!-- ACCIONES -->
+
+        <div class="ventas-acciones">
+
+          <button
+            type="button"
+            class="ventas-btn ventas-btn-limpiar"
+            onclick="limpiarFormularioVenta();"
+          >
+            🧹 BORRAR
+          </button>
+
+          <button
+            type="button"
+            class="ventas-btn ventas-btn-guardar"
+            onclick="guardarVenta();"
+          >
+            💾 GUARDAR VENTA
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         BLOQUE 2: BÚSQUEDA DE VENTA
+         ======================================================== -->
+
+    <div class="ventas-card">
+
+      <div class="ventas-card-header">
+        <h3>BUSCAR VENTA</h3>
+        <span>🔎</span>
+      </div>
+
+      <div class="ventas-card-body">
+
+        <div class="ventas-busqueda">
+
+          <div class="ventas-campo ventas-busqueda-campo">
+            <label for="buscar-venta-correlativo">
+              Correlativo de venta
+            </label>
+
+            <input
+              type="text"
+              id="buscar-venta-correlativo"
+              placeholder="Ingrese el correlativo a buscar"
+            >
+          </div>
+
+          <button
+            type="button"
+            class="ventas-btn ventas-btn-buscar"
+            onclick="buscarVentaPorCorrelativo();"
+          >
+            🔍 BUSCAR
+          </button>
+
+        </div>
+
+
+        <!-- MENSAJE -->
+
+        <div
+          id="ventas-mensaje"
+          class="ventas-mensaje"
+        ></div>
+
+
+        <!-- RESULTADO -->
+
+        <div
+          id="ventas-resultado"
+          class="ventas-resultado"
+        >
+
+          <div class="ventas-info-resultado">
+
+            <div class="ventas-info-item">
+              <span class="ventas-info-label">
+                Correlativo
+              </span>
+
+              <span
+                class="ventas-info-valor"
+                id="resultado-correlativo"
+              >
+                -
+              </span>
+            </div>
+
+
+            <div class="ventas-info-item">
+              <span class="ventas-info-label">
+                Fecha de despacho
+              </span>
+
+              <span
+                class="ventas-info-valor"
+                id="resultado-fecha"
+              >
+                -
+              </span>
+            </div>
+
+
+            <div class="ventas-info-item">
+              <span class="ventas-info-label">
+                RUC
+              </span>
+
+              <span
+                class="ventas-info-valor"
+                id="resultado-ruc"
+              >
+                -
+              </span>
+            </div>
+
+
+            <div class="ventas-info-item">
+              <span class="ventas-info-label">
+                Cliente
+              </span>
+
+              <span
+                class="ventas-info-valor"
+                id="resultado-cliente"
+              >
+                -
+              </span>
+            </div>
+
+          </div>
+
+
+          <!-- TABLA RESULTADO -->
+
+          <div class="ventas-detalle-wrapper">
+
+            <table class="ventas-tabla">
+
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Variedad</th>
+                  <th style="text-align:right;">
+                    KG Total
+                  </th>
+                  <th></th>
+                </tr>
+              </thead>
+
+              <tbody id="tbody-ventas-resultado">
+              </tbody>
+
+            </table>
+
+          </div>
+
+
+          <!-- TOTAL RESULTADO -->
+
+          <div class="ventas-total">
+
+            <span class="ventas-total-label">
+              Total venta
+            </span>
+
+            <span
+              class="ventas-total-valor"
+              id="resultado-total-kilos"
+            >
+              0.000
+            </span>
+
+            <span class="ventas-total-unidad">
+              KG
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

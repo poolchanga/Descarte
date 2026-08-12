@@ -676,3 +676,529 @@ function transformarUrlDriveDirecta(url) {
   }
   return url;
 }
+// ============================================================
+// SERVICIOS PARA MÓDULO DE VENTAS
+// ============================================================
+
+/**
+ * Guarda una venta en la pestaña VENTAS.
+ *
+ * Estructura:
+ * A = CORRELATIVO
+ * B = FECHA DE DESPACHO
+ * C = RUC
+ * D = CLIENTE
+ * E = CODIGO
+ * F = VARIEDAD
+ * G = KG TOTAL
+ *
+ * El correlativo es ingresado manualmente.
+ */
+function guardarVenta(datosVenta) {
+
+  try {
+
+    var sheetId = "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
+
+    var ss = SpreadsheetApp.openById(sheetId);
+
+    var sheet = ss.getSheetByName("VENTAS");
+
+
+    if (!sheet) {
+
+      return {
+        exito: false,
+        mensaje: "No se encontró la pestaña VENTAS."
+      };
+
+    }
+
+
+    if (!datosVenta) {
+
+      return {
+        exito: false,
+        mensaje: "No se recibieron los datos de la venta."
+      };
+
+    }
+
+
+    var correlativo =
+      String(datosVenta.correlativo || "").trim();
+
+    var fechaDespacho =
+      String(datosVenta.fechaDespacho || "").trim();
+
+    var ruc =
+      String(datosVenta.ruc || "").trim();
+
+    var cliente =
+      String(datosVenta.cliente || "").trim();
+
+    var detalle =
+      datosVenta.detalle || [];
+
+
+    if (!correlativo) {
+
+      return {
+        exito: false,
+        mensaje: "El correlativo es obligatorio."
+      };
+
+    }
+
+
+    if (!fechaDespacho) {
+
+      return {
+        exito: false,
+        mensaje: "La fecha de despacho es obligatoria."
+      };
+
+    }
+
+
+    if (!ruc) {
+
+      return {
+        exito: false,
+        mensaje: "El RUC es obligatorio."
+      };
+
+    }
+
+
+    if (!cliente) {
+
+      return {
+        exito: false,
+        mensaje: "El cliente es obligatorio."
+      };
+
+    }
+
+
+    if (!detalle.length) {
+
+      return {
+        exito: false,
+        mensaje: "La venta debe tener al menos un producto."
+      };
+
+    }
+
+
+    // ========================================================
+    // VALIDAR QUE EL CORRELATIVO NO EXISTA
+    // ========================================================
+
+    var ultimaFila =
+      sheet.getLastRow();
+
+    if (ultimaFila > 1) {
+
+      var correlativosExistentes =
+        sheet
+          .getRange(
+            2,
+            1,
+            ultimaFila - 1,
+            1
+          )
+          .getValues();
+
+
+      var correlativoBuscado =
+        correlativo.toUpperCase();
+
+
+      for (
+        var i = 0;
+        i < correlativosExistentes.length;
+        i++
+      ) {
+
+        var correlativoExistente =
+          String(
+            correlativosExistentes[i][0] || ""
+          )
+          .trim()
+          .toUpperCase();
+
+
+        if (
+          correlativoExistente ===
+          correlativoBuscado
+        ) {
+
+          return {
+            exito: false,
+            mensaje:
+              "El correlativo " +
+              correlativo +
+              " ya existe en VENTAS."
+          };
+
+        }
+
+      }
+
+    }
+
+
+    // ========================================================
+    // CONVERTIR FECHA
+    // ========================================================
+
+    var partesFecha =
+      fechaDespacho.split("-");
+
+    var fechaParaGuardar;
+
+    if (partesFecha.length === 3) {
+
+      fechaParaGuardar = new Date(
+        parseInt(partesFecha[0], 10),
+        parseInt(partesFecha[1], 10) - 1,
+        parseInt(partesFecha[2], 10)
+      );
+
+    } else {
+
+      fechaParaGuardar = fechaDespacho;
+
+    }
+
+
+    // ========================================================
+    // PREPARAR FILAS
+    // ========================================================
+
+    var filasParaGuardar = [];
+
+
+    for (
+      var j = 0;
+      j < detalle.length;
+      j++
+    ) {
+
+      var producto =
+        detalle[j] || {};
+
+
+      var codigo =
+        String(producto.codigo || "").trim();
+
+      var variedad =
+        String(producto.variedad || "").trim();
+
+      var kg =
+        parseFloat(producto.kgTotal) || 0;
+
+
+      if (!codigo) {
+
+        return {
+          exito: false,
+          mensaje:
+            "Existe una línea sin código de producto."
+        };
+
+      }
+
+
+      if (!variedad) {
+
+        return {
+          exito: false,
+          mensaje:
+            "Existe una línea sin variedad."
+        };
+
+      }
+
+
+      if (kg <= 0) {
+
+        return {
+          exito: false,
+          mensaje:
+            "Todos los productos deben tener KG mayor a cero."
+        };
+
+      }
+
+
+      filasParaGuardar.push([
+
+        correlativo,
+
+        fechaParaGuardar,
+
+        ruc,
+
+        cliente,
+
+        codigo,
+
+        variedad,
+
+        kg
+
+      ]);
+
+    }
+
+
+    // ========================================================
+    // GUARDAR TODO EN UNA SOLA OPERACIÓN
+    // ========================================================
+
+    var filaInicial =
+      sheet.getLastRow() + 1;
+
+
+    sheet
+      .getRange(
+        filaInicial,
+        1,
+        filasParaGuardar.length,
+        7
+      )
+      .setValues(filasParaGuardar);
+
+
+    return {
+
+      exito: true,
+
+      mensaje:
+        "Venta guardada correctamente.",
+
+      correlativo:
+        correlativo
+
+    };
+
+
+  } catch (error) {
+
+    return {
+
+      exito: false,
+
+      mensaje:
+        "Error al guardar la venta: " +
+        error.toString()
+
+    };
+
+  }
+
+}
+
+
+/**
+ * Busca una venta completa mediante su correlativo.
+ *
+ * Puede devolver varias filas si una venta
+ * tiene varias variedades/productos.
+ */
+function buscarVentaPorCorrelativo(correlativo) {
+
+  try {
+
+    var sheetId =
+      "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
+
+
+    var ss =
+      SpreadsheetApp.openById(sheetId);
+
+
+    var sheet =
+      ss.getSheetByName("VENTAS");
+
+
+    if (!sheet) {
+
+      return {
+
+        exito: false,
+
+        mensaje:
+          "No se encontró la pestaña VENTAS."
+
+      };
+
+    }
+
+
+    var buscado =
+      String(correlativo || "")
+        .trim()
+        .toUpperCase();
+
+
+    if (!buscado) {
+
+      return {
+
+        exito: false,
+
+        mensaje:
+          "Ingrese un correlativo para buscar."
+
+      };
+
+    }
+
+
+    var ultimaFila =
+      sheet.getLastRow();
+
+
+    if (ultimaFila <= 1) {
+
+      return {
+
+        exito: false,
+
+        mensaje:
+          "La pestaña VENTAS no contiene registros."
+
+      };
+
+    }
+
+
+    var datos =
+      sheet
+        .getRange(
+          2,
+          1,
+          ultimaFila - 1,
+          7
+        )
+        .getValues();
+
+
+    var resultados = [];
+
+
+    for (
+      var i = 0;
+      i < datos.length;
+      i++
+    ) {
+
+      var correlativoFila =
+        String(
+          datos[i][0] || ""
+        )
+        .trim()
+        .toUpperCase();
+
+
+      if (
+        correlativoFila ===
+        buscado
+      ) {
+
+        var fecha =
+          datos[i][1];
+
+
+        var fechaFormateada = "";
+
+
+        if (fecha instanceof Date) {
+
+          fechaFormateada =
+            Utilities.formatDate(
+              fecha,
+              Session.getScriptTimeZone(),
+              "dd/MM/yyyy"
+            );
+
+        } else {
+
+          fechaFormateada =
+            String(fecha || "").trim();
+
+        }
+
+
+        resultados.push({
+
+          correlativo:
+            String(datos[i][0] || "").trim(),
+
+          fechaDespacho:
+            fechaFormateada,
+
+          ruc:
+            String(datos[i][2] || "").trim(),
+
+          cliente:
+            String(datos[i][3] || "").trim(),
+
+          codigo:
+            String(datos[i][4] || "").trim(),
+
+          variedad:
+            String(datos[i][5] || "").trim(),
+
+          kgTotal:
+            parseFloat(datos[i][6]) || 0
+
+        });
+
+      }
+
+    }
+
+
+    if (!resultados.length) {
+
+      return {
+
+        exito: false,
+
+        mensaje:
+          "No se encontró ninguna venta con el correlativo: " +
+          correlativo
+
+      };
+
+    }
+
+
+    return {
+
+      exito: true,
+
+      datos: resultados
+
+    };
+
+
+  } catch (error) {
+
+    return {
+
+      exito: false,
+
+      mensaje:
+        "Error al buscar la venta: " +
+        error.toString()
+
+    };
+
+  }
+
+}

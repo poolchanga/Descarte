@@ -265,6 +265,9 @@
         <button class="menu-item" onclick="cambiarPestana(event, 'tab-guias')">
           <span class="icon">🚚</span> Guías Provisionales
         </button>
+         <button class="menu-item" onclick="cambiarPestana(event, 'tab-ventas')">
+  <span class="icon">💰</span> Ventas
+</button>
       </nav>
       
       <div class="sidebar-footer">
@@ -638,7 +641,10 @@
             <button type="button" onclick="procesarGuardadoGuia();" style="padding: 12px 30px; background: #22c55e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Guardar e Imprimir Nota</button>
           </div>
 
+             </div>
         </div>
+
+        <?!= HtmlService.createHtmlOutputFromFile('Ventas').getContent(); ?>
 
       </div>
     </div>
