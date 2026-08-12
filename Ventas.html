@@ -92,6 +92,69 @@
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
+    #tab-ventas .ventas-campo select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #334155;
+      font-size: 12px;
+      outline: none;
+    }
+
+    #tab-ventas .ventas-campo select:focus {
+      border-color: #819da7;
+      box-shadow: 0 0 0 2px rgba(129,157,167,0.12);
+    }
+
+    #tab-ventas .ventas-link-campo {
+      grid-column: span 3;
+    }
+
+    #tab-ventas .ventas-link-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #tab-ventas .ventas-link-row input {
+      flex: 1;
+    }
+
+    #tab-ventas .ventas-btn-cargar-link {
+      background: #819da7;
+      color: #ffffff;
+      white-space: nowrap;
+      padding: 10px 14px;
+    }
+
+    #tab-ventas .ventas-btn-cargar-link:hover {
+      background: #688391;
+    }
+
+    #tab-ventas .ventas-link-mensaje {
+      min-height: 14px;
+      display: block;
+      margin-top: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    #tab-ventas .ventas-link-resultado {
+      color: #2563eb;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #tab-ventas .ventas-link-resultado:hover {
+      text-decoration: underline;
+    }
+
     #tab-ventas .ventas-campo input:focus {
       border-color: #819da7;
       box-shadow: 0 0 0 2px rgba(129,157,167,0.12);
@@ -382,6 +445,10 @@
         grid-template-columns: 1fr;
       }
 
+      #tab-ventas .ventas-link-campo {
+        grid-column: span 1;
+      }
+
       #tab-ventas .ventas-busqueda {
         flex-direction: column;
         align-items: stretch;
@@ -439,11 +506,21 @@
           </div>
 
           <div class="ventas-campo">
+            <label for="venta-empresa">Empresa</label>
+            <select id="venta-empresa">
+              <option value="AGA">AGA</option>
+              <option value="LARAMA">LARAMA</option>
+              <option value="ARENUVA">ARENUVA</option>
+            </select>
+          </div>
+
+          <div class="ventas-campo">
             <label for="venta-ruc">RUC</label>
             <input
               type="text"
               id="venta-ruc"
               placeholder="Ingrese RUC"
+              onblur="buscarClientePorRucVenta(this)"
             >
           </div>
 
@@ -454,6 +531,25 @@
               id="venta-cliente"
               placeholder="Ingrese cliente"
             >
+          </div>
+
+          <div class="ventas-campo ventas-link-campo">
+            <label for="venta-link">Link de origen</label>
+            <div class="ventas-link-row">
+              <input
+                type="url"
+                id="venta-link"
+                placeholder="Pegue aquí el link del reporte"
+              >
+              <button
+                type="button"
+                class="ventas-btn ventas-btn-cargar-link"
+                onclick="cargarProductosDesdeLinkVenta();"
+              >
+                🔄 CARGAR
+              </button>
+            </div>
+            <small id="venta-link-mensaje" class="ventas-link-mensaje"></small>
           </div>
 
         </div>
@@ -478,6 +574,8 @@
               Detalle de venta
             </div>
           </div>
+
+          <datalist id="lista-codigos-venta"></datalist>
 
           <div class="ventas-detalle-wrapper">
 
@@ -641,6 +739,20 @@
 
             <div class="ventas-info-item">
               <span class="ventas-info-label">
+                Empresa
+              </span>
+
+              <span
+                class="ventas-info-valor"
+                id="resultado-empresa"
+              >
+                -
+              </span>
+            </div>
+
+
+            <div class="ventas-info-item">
+              <span class="ventas-info-label">
                 RUC
               </span>
 
@@ -664,6 +776,22 @@
               >
                 -
               </span>
+            </div>
+
+            <div class="ventas-info-item">
+              <span class="ventas-info-label">
+                Link de origen
+              </span>
+
+              <a
+                class="ventas-info-valor ventas-link-resultado"
+                id="resultado-link"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                -
+              </a>
             </div>
 
           </div>

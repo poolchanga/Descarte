@@ -32,7 +32,7 @@
       'tab-dashboard': 'Dashboard General',
       'tab-reporte': 'Módulo de Reportes',
       'tab-cruce': 'Cruce de Stocks',
-      'tab-guias': 'Emisión de Guías Provisionales'
+      'tab-guias': 'Emisión de Guías Provisionales',
       'tab-ventas': 'Módulo de Ventas'
     };
     document.getElementById('txt-titulo-pestana').innerText = titulos[idTab];
@@ -43,6 +43,7 @@
 
 if (idTab === 'tab-ventas') {
     inicializarModuloVentas();
+  }
 }
 
   var datosReporteActual = [];
@@ -663,6 +664,8 @@ if (idTab === 'tab-ventas') {
 // MÓDULO VENTAS
 // ============================================================
 
+var productosVentaDisponibles = [];
+
 function inicializarModuloVentas() {
 
   var fecha = document.getElementById('venta-fecha');
@@ -675,6 +678,16 @@ function inicializarModuloVentas() {
 
     fecha.value = anio + '-' + mes + '-' + dia;
   }
+
+  var empresa = document.getElementById('venta-empresa');
+  if (empresa && !empresa.value) {
+    empresa.value = 'AGA';
+  }
+
+  var link = document.getElementById('venta-link');
+  if (link) link.value = link.value || '';
+
+  actualizarListaCodigosVenta();
 
   var tbody = document.getElementById('tbody-ventas-detalle');
 
@@ -701,7 +714,8 @@ function agregarFilaVenta() {
       <input
         type="text"
         class="ventas-input"
-        placeholder="Ingrese código..."
+        placeholder="Ingrese o seleccione código..."
+        list="lista-codigos-venta"
         oninput="escucharCambioCodigoVenta(this)"
       >
     </td>
@@ -774,52 +788,176 @@ function eliminarFilaVenta(boton) {
 // buscarProductoPorCodigo()
 // ============================================================
 
-function escucharCambioCodigoVenta(codigoInput) {
+function actualizarListaCodigosVenta() {
 
-  var fila = codigoInput.closest('tr');
+  var datalist = document.getElementById('lista-codigos-venta');
+  if (!datalist) return;
 
-  if (!fila) return;
+  datalist.innerHTML = '';
 
-  var inputs = fila.querySelectorAll('input');
+  productosVentaDisponibles.forEach(function(producto) {
+    var option = document.createElement('option');
+    option.value = producto.codigo;
+    option.label = producto.descripcion || '';
+    datalist.appendChild(option);
+  });
+}
 
-  var variedadInput = inputs[1];
+function cargarProductosDesdeLinkVenta() {
 
-  var codigo = codigoInput.value.trim();
+  var empresa = document.getElementById('venta-empresa');
+  var link = document.getElementById('venta-link');
+  var mensaje = document.getElementById('venta-link-mensaje');
+  var boton = document.querySelector('#tab-ventas .ventas-btn-cargar-link');
 
-  if (!codigo) {
-    variedadInput.value = '';
-    variedadInput.style.color = '#334155';
+  var empresaValor = empresa
+    ? empresa.value.trim().toUpperCase()
+    : '';
+
+  var linkValor = link
+    ? link.value.trim()
+    : '';
+
+  if (!empresaValor) {
+    alert('Seleccione una empresa.');
     return;
   }
 
-  variedadInput.value = '🔍 Buscando...';
-  variedadInput.style.color = '#2563eb';
+  if (!linkValor) {
+    alert('Pegue el link del reporte antes de cargar los códigos.');
+    return;
+  }
+
+  if (mensaje) {
+    mensaje.innerText = '🔍 Leyendo información del archivo...';
+    mensaje.style.color = '#2563eb';
+  }
+
+  if (boton) {
+    boton.disabled = true;
+    boton.innerText = 'CARGANDO...';
+  }
 
   google.script.run
-    .withSuccessHandler(function(resultado) {
 
-      if (resultado && resultado.exito) {
+    .withSuccessHandler(function(respuesta) {
 
-        variedadInput.value = resultado.descripcion || '';
-        variedadInput.style.color = '#16a34a';
+      if (boton) {
+        boton.disabled = false;
+        boton.innerText = '🔄 CARGAR';
+      }
 
-      } else {
+      if (!respuesta || !respuesta.exito) {
 
-        variedadInput.value = 'Código no encontrado';
-        variedadInput.style.color = '#dc2626';
+        productosVentaDisponibles = [];
+        actualizarListaCodigosVenta();
 
+        if (mensaje) {
+          mensaje.innerText =
+            '❌ ' +
+            (
+              respuesta && respuesta.mensaje
+                ? respuesta.mensaje
+                : 'No se pudieron cargar los datos.'
+            );
+
+          mensaje.style.color = '#dc2626';
+        }
+
+        return;
+      }
+
+      productosVentaDisponibles =
+        respuesta.productos || [];
+
+      actualizarListaCodigosVenta();
+
+      // ============================================================
+      // LIMPIAR TABLA ACTUAL
+      // ============================================================
+
+      var tbody =
+        document.getElementById('tbody-ventas-detalle');
+
+      if (tbody) {
+
+        tbody.innerHTML = '';
+
+        // ========================================================
+        // CREAR AUTOMÁTICAMENTE UNA FILA POR PRODUCTO
+        // ========================================================
+
+        productosVentaDisponibles.forEach(function(producto) {
+
+          agregarFilaVenta();
+
+          var fila = tbody.lastElementChild;
+
+          if (!fila) return;
+
+          var inputs =
+            fila.querySelectorAll('input');
+
+          if (inputs.length >= 3) {
+
+            inputs[0].value =
+              producto.codigo || '';
+
+            inputs[1].value =
+              producto.descripcion || '';
+
+            inputs[1].style.color =
+              '#16a34a';
+
+            inputs[2].value =
+              producto.cantidad > 0
+                ? producto.cantidad.toFixed(3)
+                : '';
+
+          }
+
+        });
+
+        calcularTotalVenta();
+      }
+
+      if (mensaje) {
+
+        mensaje.innerText =
+          '✓ ' +
+          productosVentaDisponibles.length +
+          ' productos cargados para ' +
+          empresaValor +
+          ' desde ' +
+          (respuesta.pestaña || 'la pestaña indicada') +
+          '.';
+
+        mensaje.style.color = '#16a34a';
       }
 
     })
+
     .withFailureHandler(function(error) {
 
-      variedadInput.value = 'Error de búsqueda';
-      variedadInput.style.color = '#dc2626';
+      if (boton) {
+        boton.disabled = false;
+        boton.innerText = '🔄 CARGAR';
+      }
 
-      console.error(error);
+      if (mensaje) {
+        mensaje.innerText =
+          '❌ Error en el servidor: ' +
+          error.message;
+
+        mensaje.style.color = '#dc2626';
+      }
 
     })
-    .buscarProductoPorCodigo(codigo);
+
+    .obtenerProductosDesdeLinkVenta(
+      empresaValor,
+      linkValor
+    );
 }
 
 
@@ -868,6 +1006,8 @@ function guardarVenta() {
 
   var correlativo = document.getElementById('venta-correlativo').value.trim();
   var fecha = document.getElementById('venta-fecha').value;
+  var empresa = document.getElementById('venta-empresa').value.trim().toUpperCase();
+  var linkOrigen = document.getElementById('venta-link').value.trim();
   var ruc = document.getElementById('venta-ruc').value.trim();
   var cliente = document.getElementById('venta-cliente').value.trim();
 
@@ -878,6 +1018,16 @@ function guardarVenta() {
 
   if (!fecha) {
     alert('Por favor, seleccione la fecha de despacho.');
+    return;
+  }
+
+  if (!empresa) {
+    alert('Por favor, seleccione la empresa.');
+    return;
+  }
+
+  if (!linkOrigen) {
+    alert('Por favor, ingrese el link de origen.');
     return;
   }
 
@@ -914,7 +1064,7 @@ function guardarVenta() {
       return;
     }
 
-    if (!variedad || variedad === 'Código no encontrado') {
+    if (!variedad || variedad === 'Código no encontrado' || variedad === 'Código no disponible en el link') {
       alert('Verifique que todos los códigos sean válidos.');
       return;
     }
@@ -939,6 +1089,8 @@ function guardarVenta() {
   var payload = {
     correlativo: correlativo,
     fechaDespacho: fecha,
+    empresa: empresa,
+    linkOrigen: linkOrigen,
     ruc: ruc,
     cliente: cliente,
     detalle: detalle
@@ -1068,6 +1220,16 @@ function mostrarResultadoVenta(respuesta) {
   document.getElementById('resultado-fecha').innerText =
     primero.fechaDespacho || '';
 
+  document.getElementById('resultado-empresa').innerText =
+    primero.empresa || '-';
+
+  var linkResultado = document.getElementById('resultado-link');
+  if (linkResultado) {
+    var urlOrigen = primero.linkOrigen || '';
+    linkResultado.innerText = urlOrigen ? 'Abrir archivo' : '-';
+    linkResultado.href = urlOrigen || '#';
+  }
+
   document.getElementById('resultado-ruc').innerText =
     primero.ruc || '';
 
@@ -1161,10 +1323,16 @@ function limpiarFormularioVenta() {
   var fecha = document.getElementById('venta-fecha');
   var ruc = document.getElementById('venta-ruc');
   var cliente = document.getElementById('venta-cliente');
+  var link = document.getElementById('venta-link');
+  var mensajeLink = document.getElementById('venta-link-mensaje');
 
   if (correlativo) correlativo.value = '';
   if (ruc) ruc.value = '';
-  if (cliente) cliente.value = '';
+  if (cliente) { cliente.value = ''; cliente.style.color = '#334155'; }
+  if (link) link.value = '';
+  if (mensajeLink) mensajeLink.innerText = '';
+  productosVentaDisponibles = [];
+  actualizarListaCodigosVenta();
 
   if (fecha) {
 
