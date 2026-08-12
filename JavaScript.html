@@ -962,6 +962,48 @@ function cargarProductosDesdeLinkVenta() {
 
 
 // ============================================================
+// CÓDIGO Y VARIEDAD DESDE EL LINK CARGADO
+// ============================================================
+function escucharCambioCodigoVenta(codigoInput) {
+  var fila=codigoInput.closest('tr');
+  if(!fila)return;
+  var inputs=fila.querySelectorAll('input');
+  if(inputs.length<3)return;
+  var variedadInput=inputs[1], codigo=codigoInput.value.trim();
+  if(!codigo){variedadInput.value='';variedadInput.style.color='#334155';return;}
+  var encontrado=productosVentaDisponibles.find(function(p){return String(p.codigo||'').trim()===codigo;});
+  if(encontrado){
+    variedadInput.value=encontrado.descripcion||'';
+    variedadInput.style.color='#16a34a';
+    if(!inputs[2].value&&Number(encontrado.cantidad)>0){inputs[2].value=Number(encontrado.cantidad).toFixed(3);calcularTotalVenta();}
+    return;
+  }
+  variedadInput.value='🔍 Buscando...';variedadInput.style.color='#2563eb';
+  google.script.run.withSuccessHandler(function(resultado){
+    if(resultado&&resultado.exito){variedadInput.value=resultado.descripcion||'';variedadInput.style.color='#16a34a';}
+    else{variedadInput.value='Código no encontrado';variedadInput.style.color='#dc2626';}
+  }).withFailureHandler(function(error){variedadInput.value='Error de búsqueda';variedadInput.style.color='#dc2626';console.error(error);}).buscarProductoPorCodigo(codigo);
+}
+
+// ============================================================
+// CLIENTE POR RUC
+// ============================================================
+function buscarClientePorRucVenta(rucInput) {
+  var clienteInput=document.getElementById('venta-cliente');
+  if(!clienteInput)return;
+  var ruc=rucInput?rucInput.value.trim():'';
+  if(!ruc){clienteInput.value='';return;}
+  clienteInput.value='🔍 Buscando...';clienteInput.style.color='#2563eb';
+  google.script.run.withSuccessHandler(function(resultado){
+    if(resultado&&resultado.exito&&resultado.cliente){
+      clienteInput.value=resultado.cliente;clienteInput.style.color='#16a34a';
+    }else{
+      clienteInput.value='';clienteInput.style.color='#334155';clienteInput.focus();
+    }
+  }).withFailureHandler(function(error){clienteInput.value='';clienteInput.style.color='#dc2626';console.error('Error buscando cliente por RUC:',error);}).buscarClientePorRuc(ruc);
+}
+
+// ============================================================
 // CALCULAR TOTAL KG
 // ============================================================
 
