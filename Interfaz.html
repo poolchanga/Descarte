@@ -649,7 +649,337 @@
             <button type="button" onclick="limpiarFormularioGuia();" style="padding: 12px 30px; background: #ef4444; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Borrar Todo</button>
             <button type="button" onclick="procesarGuardadoGuia();" style="padding: 12px 30px; background: #22c55e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Guardar e Imprimir Nota</button>
           </div>
+<!-- =========================================================
+     BUSCAR / REIMPRIMIR GUÍA PROVISIONAL
+     ========================================================= -->
 
+<div
+  class="reporte-visual-container"
+  style="
+    margin-top: 25px;
+    margin-bottom: 40px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+  "
+>
+
+  <!-- ENCABEZADO -->
+  <div
+    style="
+      background: #819da7;
+      color: white;
+      padding: 14px 20px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    "
+  >
+
+    <span style="font-size:14px;">
+      🔎 CONSULTAR GUÍA PROVISIONAL
+    </span>
+
+    <span style="font-size:11px; opacity:0.9;">
+      Buscar por correlativo
+    </span>
+
+  </div>
+
+
+  <!-- BUSCADOR -->
+  <div
+    style="
+      padding: 20px;
+      background: #ffffff;
+    "
+  >
+
+    <div
+      style="
+        display:flex;
+        gap:12px;
+        align-items:end;
+        flex-wrap:wrap;
+      "
+    >
+
+      <div style="flex:1; min-width:280px;">
+
+        <label
+          style="
+            display:block;
+            font-weight:bold;
+            margin-bottom:6px;
+            color:#475569;
+            font-size:12px;
+          "
+        >
+          CORRELATIVO DE LA GUÍA
+        </label>
+
+        <input
+          type="text"
+          id="buscar-correlativo-guia"
+          placeholder="Ejemplo: T003-00000001"
+          autocomplete="off"
+          style="
+            width:100%;
+            padding:11px;
+            border:1px solid #cbd5e1;
+            border-radius:6px;
+            font-size:13px;
+            font-weight:bold;
+            text-transform:uppercase;
+          "
+          onkeydown="
+            if(event.key === 'Enter'){
+              buscarGuiaPorCorrelativo();
+            }
+          "
+        >
+
+      </div>
+
+
+      <button
+        type="button"
+        id="btn-buscar-guia"
+        onclick="buscarGuiaPorCorrelativo();"
+        style="
+          padding:11px 22px;
+          background:#2563eb;
+          color:white;
+          border:none;
+          border-radius:6px;
+          font-weight:bold;
+          cursor:pointer;
+          font-size:12px;
+          white-space:nowrap;
+        "
+      >
+        🔍 BUSCAR GUÍA
+      </button>
+
+    </div>
+
+
+    <div
+      id="mensaje-busqueda-guia"
+      style="
+        margin-top:8px;
+        min-height:18px;
+        font-size:11px;
+      "
+    ></div>
+
+
+    <!-- RESULTADO -->
+    <div
+      id="resultado-guia-buscada"
+      style="
+        display:none;
+        margin-top:18px;
+        border-top:1px solid #e2e8f0;
+        padding-top:18px;
+      "
+    >
+
+      <div
+        style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:15px;
+          flex-wrap:wrap;
+          margin-bottom:15px;
+        "
+      >
+
+        <div>
+
+          <div
+            id="resultado-guia-correlativo"
+            style="
+              font-size:16px;
+              font-weight:900;
+              color:#ef4444;
+            "
+          >
+          </div>
+
+          <div
+            id="resultado-guia-empresa"
+            style="
+              margin-top:4px;
+              font-size:12px;
+              font-weight:bold;
+              color:#334155;
+            "
+          >
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          id="btn-reimprimir-guia"
+          onclick="reimprimirGuiaEncontrada();"
+          style="
+            padding:11px 22px;
+            background:#22c55e;
+            color:white;
+            border:none;
+            border-radius:6px;
+            font-weight:bold;
+            cursor:pointer;
+            font-size:12px;
+          "
+        >
+          🖨️ REIMPRIMIR GUÍA
+        </button>
+
+        <button type="button" onclick="cerrarResultadoGuia()">
+  ✖ CERRAR
+</button>
+
+      </div>
+
+
+      <!-- DATOS -->
+      <div
+        style="
+          display:grid;
+          grid-template-columns:
+            repeat(auto-fit,minmax(180px,1fr));
+          gap:10px;
+          margin-bottom:15px;
+        "
+      >
+
+        <div>
+          <strong>Cliente:</strong>
+          <span id="resultado-guia-cliente">-</span>
+        </div>
+
+        <div>
+          <strong>Documento:</strong>
+          <span id="resultado-guia-documento">-</span>
+        </div>
+
+        <div>
+          <strong>Fecha emisión:</strong>
+          <span id="resultado-guia-fecha">-</span>
+        </div>
+
+        <div>
+          <strong>Condición:</strong>
+          <span id="resultado-guia-condicion">-</span>
+        </div>
+
+      </div>
+
+
+      <!-- TABLA -->
+      <div style="overflow-x:auto;">
+
+        <table
+          style="
+            width:100%;
+            border-collapse:collapse;
+            font-size:11px;
+          "
+        >
+
+          <thead>
+
+            <tr
+              style="
+                background:#f8fafc;
+                border-bottom:2px solid #cbd5e1;
+              "
+            >
+
+              <th style="padding:8px;text-align:left;">
+                CÓDIGO
+              </th>
+
+              <th style="padding:8px;text-align:left;">
+                DESCRIPCIÓN
+              </th>
+
+              <th style="padding:8px;text-align:right;">
+                CANTIDAD
+              </th>
+
+              <th style="padding:8px;text-align:center;">
+                U.M.
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody id="tbody-guia-buscada">
+          </tbody>
+
+          <tfoot>
+
+            <tr
+              style="
+                background:#f1f5f9;
+                font-weight:bold;
+              "
+            >
+
+              <td
+                colspan="2"
+                style="
+                  padding:10px;
+                  text-align:right;
+                "
+              >
+                TOTAL KILOS:
+              </td>
+
+              <td
+                id="resultado-guia-total"
+                style="
+                  padding:10px;
+                  text-align:right;
+                  color:#2563eb;
+                  font-weight:900;
+                "
+              >
+                0.000
+              </td>
+
+              <td
+                style="
+                  padding:10px;
+                  text-align:center;
+                "
+              >
+                KG
+              </td>
+
+            </tr>
+
+          </tfoot>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
         </div>
         </div>
 

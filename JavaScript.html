@@ -851,7 +851,476 @@
         alert('No se pudo generar la vista de impresión: ' + error.message);
       })
       .generarHtmlImpresionGuia();
+      
   }
+  // ============================================================
+// BUSCAR GUÍA POR CORRELATIVO
+// ============================================================
+
+var datosGuiaEncontrada = null;
+
+
+/**
+ * Busca una guía ya guardada.
+ *
+ * IMPORTANTE:
+ * Esta función NO crea una guía.
+ * Esta función NO genera correlativo.
+ * Esta función SOLO consulta HISTORIAL_GUIAS.
+ */
+function buscarGuiaPorCorrelativo() {
+
+  var input =
+    document.getElementById(
+      'buscar-correlativo-guia'
+    );
+
+  var mensaje =
+    document.getElementById(
+      'mensaje-busqueda-guia'
+    );
+
+  var boton =
+    document.getElementById(
+      'btn-buscar-guia'
+    );
+
+  var resultado =
+    document.getElementById(
+      'resultado-guia-buscada'
+    );
+
+
+  if (!input) {
+    return;
+  }
+
+
+  var correlativo =
+    input.value
+      .trim()
+      .toUpperCase();
+
+
+  if (!correlativo) {
+
+    alert(
+      'Ingrese el correlativo de la guía.'
+    );
+
+    input.focus();
+
+    return;
+  }
+
+
+  if (mensaje) {
+
+    mensaje.innerText =
+      '🔍 Buscando guía...';
+
+    mensaje.style.color =
+      '#2563eb';
+
+  }
+
+
+  if (resultado) {
+
+    resultado.style.display =
+      'none';
+
+  }
+
+
+  if (boton) {
+
+    boton.disabled = true;
+
+    boton.innerText =
+      'BUSCANDO...';
+
+  }
+
+
+  google.script.run
+
+    .withSuccessHandler(
+      function(respuesta) {
+
+        if (boton) {
+
+          boton.disabled = false;
+
+          boton.innerText =
+            '🔍 BUSCAR GUÍA';
+
+        }
+
+
+        if (
+          !respuesta ||
+          !respuesta.exito
+        ) {
+
+          datosGuiaEncontrada =
+            null;
+
+          if (mensaje) {
+
+            mensaje.innerText =
+              '❌ ' +
+              (
+                respuesta &&
+                respuesta.mensaje
+                  ? respuesta.mensaje
+                  : 'No se encontró la guía.'
+              );
+
+            mensaje.style.color =
+              '#dc2626';
+
+          }
+
+          return;
+        }
+
+
+        datosGuiaEncontrada =
+          respuesta;
+
+
+        mostrarGuiaEncontrada(
+          respuesta
+        );
+
+
+        if (mensaje) {
+
+          mensaje.innerText =
+            '✓ Guía encontrada correctamente.';
+
+          mensaje.style.color =
+            '#16a34a';
+
+        }
+
+      }
+    )
+
+    .withFailureHandler(
+      function(error) {
+
+        if (boton) {
+
+          boton.disabled = false;
+
+          boton.innerText =
+            '🔍 BUSCAR GUÍA';
+
+        }
+
+
+        if (mensaje) {
+
+          mensaje.innerText =
+            '❌ Error en el servidor: ' +
+            error.message;
+
+          mensaje.style.color =
+            '#dc2626';
+
+        }
+
+        console.error(
+          'Error buscando guía:',
+          error
+        );
+
+      }
+    )
+
+    .buscarGuiaPorCorrelativo(
+      correlativo
+    );
+
+}
+
+
+/**
+ * Muestra en pantalla la guía encontrada.
+ */
+function mostrarGuiaEncontrada(
+  guia
+) {
+
+  var resultado =
+    document.getElementById(
+      'resultado-guia-buscada'
+    );
+
+  if (!resultado) {
+    return;
+  }
+
+
+  resultado.style.display =
+    'block';
+
+
+  var cabecera =
+    guia.cabecera || {};
+
+
+  var productos =
+    guia.productos || [];
+
+
+  var correlativo =
+    document.getElementById(
+      'resultado-guia-correlativo'
+    );
+
+  var empresa =
+    document.getElementById(
+      'resultado-guia-empresa'
+    );
+
+  var cliente =
+    document.getElementById(
+      'resultado-guia-cliente'
+    );
+
+  var documento =
+    document.getElementById(
+      'resultado-guia-documento'
+    );
+
+  var fecha =
+    document.getElementById(
+      'resultado-guia-fecha'
+    );
+
+  var condicion =
+    document.getElementById(
+      'resultado-guia-condicion'
+    );
+
+  var tbody =
+    document.getElementById(
+      'tbody-guia-buscada'
+    );
+
+  var total =
+    document.getElementById(
+      'resultado-guia-total'
+    );
+
+
+  if (correlativo) {
+
+    correlativo.innerText =
+      guia.correlativo || '';
+
+  }
+
+
+  if (empresa) {
+
+    empresa.innerText =
+      (
+        cabecera.empresa || ''
+      ) +
+      ' | RUC: ' +
+      (
+        cabecera.rucEmisor || ''
+      );
+
+  }
+
+
+  if (cliente) {
+
+    cliente.innerText =
+      cabecera.cliente || '-';
+
+  }
+
+
+  if (documento) {
+
+    documento.innerText =
+      cabecera.documento || '-';
+
+  }
+
+
+  if (fecha) {
+
+    fecha.innerText =
+      cabecera.fechaEmision || '-';
+
+  }
+
+
+  if (condicion) {
+
+    condicion.innerText =
+      cabecera.condicion || '-';
+
+  }
+
+
+  if (tbody) {
+
+    tbody.innerHTML = '';
+
+  }
+
+
+  var totalKilos = 0;
+
+
+  productos.forEach(
+    function(prod) {
+
+      var cantidad =
+        parseFloat(
+          prod.cantidad
+        ) || 0;
+
+
+      totalKilos +=
+        cantidad;
+
+
+      var tr =
+        document.createElement(
+          'tr'
+        );
+
+
+      tr.innerHTML =
+
+        '<td style="padding:8px;">' +
+          (prod.codigo || '') +
+        '</td>' +
+
+        '<td style="padding:8px;">' +
+          (prod.descripcion || '') +
+        '</td>' +
+
+        '<td style="padding:8px;text-align:right;">' +
+          cantidad.toFixed(3) +
+        '</td>' +
+
+        '<td style="padding:8px;text-align:center;">' +
+          (prod.um || 'KG') +
+        '</td>';
+
+
+      if (tbody) {
+
+        tbody.appendChild(
+          tr
+        );
+
+      }
+
+    }
+  );
+
+
+  if (total) {
+
+    total.innerText =
+      totalKilos.toFixed(3);
+
+  }
+
+}
+
+
+/**
+ * Reimprime la guía encontrada.
+ *
+ * IMPORTANTE:
+ * No guarda.
+ * No genera nuevo correlativo.
+ * No modifica HISTORIAL_GUIAS.
+ */
+function reimprimirGuiaEncontrada() {
+
+  if (!datosGuiaEncontrada) {
+
+    alert(
+      'Primero busque una guía.'
+    );
+
+    return;
+  }
+
+
+  var guia =
+    datosGuiaEncontrada;
+
+
+  var datosImpresion = {
+
+    correlativo:
+      guia.correlativo,
+
+    cabecera: {
+
+      empresa:
+        guia.cabecera.empresa || '',
+
+      rucEmisor:
+        guia.cabecera.rucEmisor || '',
+
+      cliente:
+        guia.cabecera.cliente || '',
+
+      documento:
+        guia.cabecera.documento || '',
+
+      direccion:
+        guia.cabecera.direccion || '',
+
+      fechaEmision:
+        guia.cabecera.fechaEmision || '',
+
+      fechaVencimiento:
+        guia.cabecera.fechaVencimiento || '',
+
+      condicion:
+        guia.cabecera.condicion || '',
+
+      autorizado:
+        guia.cabecera.autorizado || '',
+
+      observaciones:
+        guia.cabecera.observaciones || '',
+
+      urlLogo:
+        guia.cabecera.urlLogo || ''
+
+    },
+
+    creador:
+      guia.creador || 'SISTEMA',
+
+    productos:
+      guia.productos || []
+
+  };
+
+
+  imprimirGuia(
+    datosImpresion
+  );
+
+}
 
 
   // Variable global para almacenar el cruce y poder copiarlo a Excel
@@ -1658,6 +2127,13 @@ function limpiarFormularioVenta() {
 
   if (total) {
     total.innerText = '0.000';
+  }
+}
+function cerrarResultadoGuia() {
+  var resultado = document.getElementById('resultado-guia-buscada');
+
+  if (resultado) {
+    resultado.style.display = 'none';
   }
 }
 </script>

@@ -1198,3 +1198,194 @@ function buscarVentaPorCorrelativo(correlativo) {
     };
   }
 }
+/**
+ * ============================================================
+ * BUSCAR GUÍA PROVISIONAL POR CORRELATIVO
+ * ============================================================
+ *
+ * Busca todas las filas de HISTORIAL_GUIAS que pertenezcan
+ * al mismo correlativo y reconstruye la guía completa.
+ *
+ * NO modifica ni genera ningún correlativo.
+ * SOLO LEE información existente.
+ */
+function buscarGuiaPorCorrelativo(correlativoBuscado) {
+
+  try {
+
+    var correlativo = String(correlativoBuscado || '')
+      .trim()
+      .toUpperCase();
+
+    if (!correlativo) {
+      return {
+        exito: false,
+        mensaje: 'Ingrese un correlativo para buscar.'
+      };
+    }
+
+    var ss = SpreadsheetApp.openById(ID_SS_MAESTRO_GUIAS);
+
+    var sheet = ss.getSheetByName('HISTORIAL_GUIAS');
+
+    if (!sheet) {
+      return {
+        exito: false,
+        mensaje: 'No se encontró la pestaña HISTORIAL_GUIAS.'
+      };
+    }
+
+    var ultimaFila = sheet.getLastRow();
+
+    if (ultimaFila < 2) {
+      return {
+        exito: false,
+        mensaje: 'No existen guías registradas.'
+      };
+    }
+
+    /*
+     * Estructura actual:
+     *
+     * A = CORRELATIVO
+     * B = EMPRESA
+     * C = RUC EMISOR
+     * D = CLIENTE
+     * E = DOCUMENTO
+     * F = DIRECCIÓN
+     * G = FECHA EMISIÓN
+     * H = FECHA VENCIMIENTO
+     * I = CONDICIÓN
+     * J = AUTORIZADO
+     * K = CÓDIGO PRODUCTO
+     * L = DESCRIPCIÓN
+     * M = CANTIDAD
+     */
+
+    var datos = sheet
+      .getRange(2, 1, ultimaFila - 1, 13)
+      .getDisplayValues();
+
+    var filasGuia = [];
+
+    for (var i = 0; i < datos.length; i++) {
+
+      var fila = datos[i];
+
+      var corrFila = String(fila[0] || '')
+        .trim()
+        .toUpperCase();
+
+      if (corrFila === correlativo) {
+        filasGuia.push(fila);
+      }
+    }
+
+    if (filasGuia.length === 0) {
+
+      return {
+        exito: false,
+        mensaje: 'No se encontró ninguna guía con el correlativo ' + correlativo + '.'
+      };
+
+    }
+
+    var primera = filasGuia[0];
+
+    var empresa = String(primera[1] || '')
+      .trim()
+      .toUpperCase();
+
+    var empresaData = obtenerDatosEmpresaEmisora(empresa);
+
+    var productos = [];
+
+    for (var j = 0; j < filasGuia.length; j++) {
+
+      var f = filasGuia[j];
+
+      var codigo = String(f[10] || '').trim();
+
+      if (!codigo) {
+        continue;
+      }
+
+      productos.push({
+        codigo: codigo,
+        descripcion: String(f[11] || '').trim(),
+        cantidad: parseFloat(
+          String(f[12] || '0').replace(',', '.')
+        ) || 0,
+        um: 'KG'
+      });
+    }
+
+    return {
+
+      exito: true,
+
+      correlativo: correlativo,
+
+      cabecera: {
+
+        empresa: empresaData.razonSocial || empresa,
+
+        rucEmisor:
+          empresaData.ruc ||
+          String(primera[2] || '').trim(),
+
+        cliente:
+          String(primera[3] || '').trim(),
+
+        documento:
+          String(primera[4] || '').trim(),
+
+        direccion:
+          String(primera[5] || '').trim(),
+
+        fechaEmision:
+          String(primera[6] || '').trim(),
+
+        fechaVencimiento:
+          String(primera[7] || '').trim(),
+
+        condicion:
+          String(primera[8] || '').trim(),
+
+        autorizado:
+          String(primera[9] || '').trim(),
+
+        /*
+         * La versión actual del historial no guarda
+         * observaciones ni creador.
+         */
+        observaciones: '',
+
+        urlLogo:
+          obtenerUrlLogo(empresa)
+
+      },
+
+      creador: 'SISTEMA',
+
+      productos: productos
+
+    };
+
+  } catch (e) {
+
+    Logger.log(
+      'Error buscando guía por correlativo: ' +
+      e.toString()
+    );
+
+    return {
+      exito: false,
+      mensaje:
+        'Error al buscar la guía: ' +
+        e.toString()
+    };
+
+  }
+
+}

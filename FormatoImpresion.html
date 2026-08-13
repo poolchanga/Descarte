@@ -3,63 +3,136 @@
 <head>
   <meta charset="UTF-8">
   <title>Nota de Entrega</title>
+
   <style>
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Courier New', Courier, monospace;
       color: #333;
-      margin: 10px;
+      margin: 0;
       padding: 0;
       font-size: 11px;
-    }
-    .ticket-container {
-      max-width: 800px;
-      margin: 0 auto;
-      border: 1px solid #ccc;
-      padding: 15px;
       background: #fff;
     }
+
+    .ticket-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 10px;
+      background: #fff;
+    }
+
+    /* =========================================================
+       ENCABEZADO
+       LOGO IZQUIERDA
+       RAZÓN SOCIAL CENTRO
+       NOTA INTERNA DERECHA
+       ========================================================= */
+
     .header {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 25% 50% 25%;
       align-items: center;
+      width: 100%;
       border-bottom: 2px solid #000;
       padding-bottom: 10px;
       margin-bottom: 15px;
+      min-height: 100px;
     }
+
+    /* LOGO */
     .logo-area {
-      text-align: center;
-      width: 30%;
-      min-height: 50px;
+      width: 100%;
+      min-height: 80px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      border: none;
+      justify-content: flex-start;
+      padding-left: 5px;
     }
-    .company-details {
-      width: 40%;
-      text-align: center;
-      font-size: 10px;
+
+    .logo-area img {
+      max-width: 105px;
+      max-height: 85px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display: none;
     }
-    .company-name {
-      font-weight: bold;
-      font-size: 11px;
-    }
-    .document-box {
-      width: 30%;
-      border: 2px solid #000;
-      text-align: center;
-      padding: 10px 5px;
-    }
-    .document-title {
+
+    .logo-text {
       font-weight: bold;
       font-size: 12px;
-      margin-bottom: 5px;
+      display: none;
     }
+
+    /* RAZÓN SOCIAL */
+    .company-details {
+      width: 100%;
+      text-align: center;
+      padding: 0 8px;
+    }
+
+    .company-name {
+      font-weight: bold;
+      font-size: 17px;
+      line-height: 1.25;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .company-ruc {
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .company-location {
+      font-size: 10px;
+    }
+
+    /* NOTA INTERNA / CORRELATIVO */
+    .document-area {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .document-box {
+      width: 100%;
+      max-width: 175px;
+      border: 2px solid #000;
+      text-align: center;
+      padding: 8px 5px;
+    }
+
+    .document-title {
+      font-weight: bold;
+      font-size: 11px;
+      line-height: 1.25;
+      margin-bottom: 7px;
+    }
+
     .document-number {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: bold;
       color: #d32f2f;
+      line-height: 1.2;
     }
+
+    /* =========================================================
+       DATOS DE LA NOTA
+       ========================================================= */
+
     .info-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -69,14 +142,25 @@
       padding: 8px;
       border: 1px solid #ddd;
     }
-    .info-item span {
+
+    .info-item {
+      line-height: 1.4;
+    }
+
+    .info-item span:first-child {
       font-weight: bold;
     }
+
+    /* =========================================================
+       TABLA DE PRODUCTOS
+       ========================================================= */
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 15px;
     }
+
     th {
       border-bottom: 2px solid #000;
       border-top: 1px solid #000;
@@ -84,10 +168,17 @@
       text-align: left;
       font-weight: bold;
     }
+
     td {
       padding: 6px;
       border-bottom: 1px dashed #ccc;
+      vertical-align: middle;
     }
+
+    /* =========================================================
+       TOTALES
+       ========================================================= */
+
     .totals {
       text-align: right;
       margin-top: 10px;
@@ -96,18 +187,29 @@
       border-top: 2px solid #000;
       padding-top: 5px;
     }
+
+    /* =========================================================
+       OBSERVACIONES
+       ========================================================= */
+
     .observations {
       margin: 15px 0;
       border: 1px solid #ccc;
       padding: 8px;
       background: #fafafa;
     }
+
+    /* =========================================================
+       FIRMAS
+       ========================================================= */
+
     .signatures {
       display: flex;
       justify-content: space-between;
       margin-top: 60px;
       padding: 0 10px;
     }
+
     .signature-box {
       width: 28%;
       border-top: 1px solid #000;
@@ -115,136 +217,547 @@
       padding-top: 5px;
       font-size: 10px;
     }
+
+    /* =========================================================
+       IMPRESIÓN
+       ========================================================= */
+
     @media print {
-      body { margin: 0; }
-      .ticket-container { border: none; max-width: 100%; }
+
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      .ticket-container {
+        border: none;
+        max-width: 100%;
+        width: 100%;
+        padding: 0;
+      }
+
+      .header {
+        page-break-inside: avoid;
+      }
+
+      table {
+        page-break-inside: auto;
+      }
+
+      tr {
+        page-break-inside: avoid;
+      }
+
+      .observations,
+      .signatures {
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
+
 <body>
+
   <div class="ticket-container">
-    <!-- Header -->
-   <div class="logo-area" id="logo-container">
-    <img id="img-logo" src="" alt="Logo" style="max-width: 100%; max-height: 80px; object-fit: contain; display: none;">
-    <span id="logo-text" style="font-weight: bold; display: none;">>[ LOGO ]<</span>
-</div>
-    <div class="company-details">
-          <div class="company-name" id="emisor-nombre"></div>
-          <div id="emisor-ruc">RUC: </div>
-          <div>LIMA - PERU</div>
-        </div>
-      <div class="document-box">
-        <div class="document-title">NOTA INTERNA DE ENTREGA</div>
-        <div class="document-number" id="lbl-correlativo">T001-00000001</div>
+
+    <!-- =======================================================
+         ENCABEZADO
+         ======================================================= -->
+
+    <div class="header">
+
+      <!-- LOGO IZQUIERDA -->
+      <div class="logo-area" id="logo-container">
+
+        <img
+          id="img-logo"
+          src=""
+          alt="Logo de la empresa"
+        >
+
+        <span
+          id="logo-text"
+          class="logo-text"
+        ></span>
+
       </div>
+
+
+      <!-- RAZÓN SOCIAL CENTRADA -->
+      <div class="company-details">
+
+        <div
+          class="company-name"
+          id="emisor-nombre"
+        >
+        </div>
+
+        <div
+          class="company-ruc"
+          id="emisor-ruc"
+        >
+          RUC:
+        </div>
+
+        <div
+          class="company-location"
+          id="emisor-location"
+        >
+          LIMA - PERÚ
+        </div>
+
+      </div>
+
+
+      <!-- NOTA INTERNA DERECHA -->
+      <div class="document-area">
+
+        <div class="document-box">
+
+          <div class="document-title">
+            NOTA INTERNA DE ENTREGA
+          </div>
+
+          <div
+            class="document-number"
+            id="lbl-correlativo"
+          >
+            T001-00000001
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
 
-    <!-- Datos de la Nota -->
+
+    <!-- =======================================================
+         DATOS DE LA NOTA
+         ======================================================= -->
+
     <div class="info-grid">
-      <div class="info-item"><span>CLIENTE:</span> <span id="lbl-cliente" style="font-weight: normal;">-</span></div>
-      <div class="info-item"><span>FECHA EMISIÓN:</span> <span id="lbl-fecha" style="font-weight: normal;">-</span></div>
-      <div class="info-item"><span>DOCUMENTO:</span> <span id="lbl-doc" style="font-weight: normal;">-</span></div>
-      <div class="info-item"><span>FECHA VENC.:</span> <span id="lbl-venc" style="font-weight: normal;">-</span></div>
-      <div class="info-item"><span>DIRECCIÓN:</span> <span id="lbl-direccion" style="font-weight: normal;">-</span></div>
-      <div class="info-item"><span>COND. PAGO:</span> <span id="lbl-condicion" style="font-weight: normal;">-</span></div>
+
+      <div class="info-item">
+        <span>CLIENTE:</span>
+        <span
+          id="lbl-cliente"
+          style="font-weight: normal;"
+        >
+          -
+        </span>
+      </div>
+
+      <div class="info-item">
+        <span>FECHA EMISIÓN:</span>
+        <span
+          id="lbl-fecha"
+          style="font-weight: normal;"
+        >
+          -
+        </span>
+      </div>
+
+      <div class="info-item">
+        <span>DOCUMENTO:</span>
+        <span
+          id="lbl-doc"
+          style="font-weight: normal;"
+        >
+          -
+        </span>
+      </div>
+
+      <div class="info-item">
+        <span>FECHA VENC.:</span>
+        <span
+          id="lbl-venc"
+          style="font-weight: normal;"
+        >
+          -
+        </span>
+      </div>
+
+      <div class="info-item">
+        <span>DIRECCIÓN:</span>
+        <span
+          id="lbl-direccion"
+          style="font-weight: normal;"
+        >
+          -
+        </span>
+      </div>
+
+      <div class="info-item">
+        <span>COND. PAGO:</span>
+        <span
+          id="lbl-condicion"
+          style="font-weight: normal;"
+        >
+          -
+        </span>
+      </div>
+
     </div>
 
-    <!-- Tabla de Productos -->
+
+    <!-- =======================================================
+         TABLA DE PRODUCTOS
+         ======================================================= -->
+
     <table>
+
       <thead>
+
         <tr>
-          <th style="width: 20%;">CÓDIGO</th>
-          <th style="width: 15%; text-align: right;">CANTIDAD</th>
-          <th style="width: 15%; text-align: center;">U.M.</th>
-          <th style="width: 50%;">DESCRIPCIÓN</th>
+
+          <th style="width: 20%;">
+            CÓDIGO
+          </th>
+
+          <th
+            style="width: 15%; text-align: right;"
+          >
+            CANTIDAD
+          </th>
+
+          <th
+            style="width: 15%; text-align: center;"
+          >
+            U.M.
+          </th>
+
+          <th style="width: 50%;">
+            DESCRIPCIÓN
+          </th>
+
         </tr>
+
       </thead>
+
       <tbody id="tabla-productos-body">
       </tbody>
+
     </table>
 
-    <!-- Totales -->
+
+    <!-- =======================================================
+         TOTAL
+         ======================================================= -->
+
     <div class="totals">
-      TOTAL DE KILOS: <span id="lbl-total-kilos">0.0000</span> KG
+
+      TOTAL DE KILOS:
+
+      <span id="lbl-total-kilos">
+        0.0000
+      </span>
+
+      KG
+
     </div>
 
-    <!-- Observaciones -->
+
+    <!-- =======================================================
+         OBSERVACIONES
+         ======================================================= -->
+
     <div class="observations">
-      <strong>OBSERVACIONES:</strong>
-      <div id="lbl-observaciones" style="margin-top: 5px;">-</div>
-      <div style="margin-top: 10px; font-size: 9px;">
-        <strong>AUTORIZADO POR:</strong> <span id="lbl-autorizado">-</span> | 
-        <strong>CREADO POR:</strong> <span id="lbl-creador">-</span>
+
+      <strong>
+        OBSERVACIONES:
+      </strong>
+
+      <div
+        id="lbl-observaciones"
+        style="margin-top: 5px;"
+      >
+        -
       </div>
+
+      <div
+        style="
+          margin-top: 10px;
+          font-size: 9px;
+        "
+      >
+
+        <strong>
+          AUTORIZADO POR:
+        </strong>
+
+        <span id="lbl-autorizado">
+          -
+        </span>
+
+        |
+
+        <strong>
+          CREADO POR:
+        </strong>
+
+        <span id="lbl-creador">
+          -
+        </span>
+
+      </div>
+
     </div>
 
-    <!-- Firmas -->
+
+    <!-- =======================================================
+         FIRMAS
+         ======================================================= -->
+
     <div class="signatures">
-      <div class="signature-box">FIRMA DE ALMACÉN</div>
-      <div class="signature-box">FIRMA DE CLIENTE</div>
-      <div class="signature-box">FIRMA DE SEGURIDAD</div>
+
+      <div class="signature-box">
+        FIRMA DE ALMACÉN
+      </div>
+
+      <div class="signature-box">
+        FIRMA DE CLIENTE
+      </div>
+
+      <div class="signature-box">
+        FIRMA DE SEGURIDAD
+      </div>
+
     </div>
+
   </div>
 
+
+  <!-- =========================================================
+       JAVASCRIPT DE IMPRESIÓN
+       ========================================================= -->
+
   <script>
-      window.onload = function() {
-      const data = window.opener && window.opener.datosImpresionActual ? window.opener.datosImpresionActual : null;
-      if (data) {
-        document.getElementById('lbl-correlativo').innerText = data.correlativo;
-        document.getElementById('emisor-nombre').innerText = data.cabecera.empresa;
-        document.getElementById('emisor-ruc').innerText = "RUC: " + data.cabecera.rucEmisor;
-        
-        // --- Asignación dinámica del Logo ---
-        const imgLogo = document.getElementById('img-logo');
-        const logoText = document.getElementById('logo-text');
 
-        if (data.cabecera.urlLogo) {
-          imgLogo.src = data.cabecera.urlLogo;
-          imgLogo.style.display = 'block';
-          if (logoText) logoText.style.display = 'none';
-        } else {
-          imgLogo.style.display = 'none';
-          if (logoText) {
-            logoText.innerText = data.cabecera.empresa;
-            logoText.style.display = 'inline';
-          }
-        }
-        // -------------------------------------
+    window.onload = function() {
 
-        document.getElementById('lbl-cliente').innerText = data.cabecera.cliente;
-        document.getElementById('lbl-doc').innerText = data.cabecera.documento;
-        document.getElementById('lbl-direccion').innerText = data.cabecera.direccion || '-';
-        document.getElementById('lbl-fecha').innerText = data.cabecera.fechaEmision;
-        document.getElementById('lbl-venc').innerText = data.cabecera.fechaVencimiento;
-        document.getElementById('lbl-condicion').innerText = data.cabecera.condicion;
-        document.getElementById('lbl-autorizado').innerText = data.cabecera.autorizado;
-        document.getElementById('lbl-creador').innerText = data.creador || 'SISTEMA';
-        document.getElementById('lbl-observaciones').innerText = data.cabecera.observaciones || '-';
-        
-        let totalKilos = 0;
-        const tbody = document.getElementById('tabla-productos-body');
-        tbody.innerHTML = '';
-        
-        data.productos.forEach(prod => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>` + prod.codigo + `</td>
-            <td style="text-align: right;">` + parseFloat(prod.cantidad).toFixed(4) + `</td>
-            <td style="text-align: center;">` + prod.um + `</td>
-            <td>` + prod.descripcion + `</td>
-          `;
-          tbody.appendChild(row);
-          totalKilos += parseFloat(prod.cantidad);
-        });
-        
-        document.getElementById('lbl-total-kilos').innerText = totalKilos.toFixed(4);
-        
-        setTimeout(() => {
-          window.print();
-        }, 800);
+      const data =
+        window.opener &&
+        window.opener.datosImpresionActual
+          ? window.opener.datosImpresionActual
+          : null;
+
+
+      if (!data) {
+        return;
       }
+
+
+      /* =======================================================
+         CORRELATIVO
+         ======================================================= */
+
+      document.getElementById(
+        'lbl-correlativo'
+      ).innerText =
+        data.correlativo || '';
+
+
+      /* =======================================================
+         RAZÓN SOCIAL Y RUC
+         ======================================================= */
+
+      document.getElementById(
+        'emisor-nombre'
+      ).innerText =
+        data.cabecera.empresa || '';
+
+
+      document.getElementById(
+        'emisor-ruc'
+      ).innerText =
+        'RUC: ' +
+        (data.cabecera.rucEmisor || '');
+
+
+      /* =======================================================
+         LOGO
+         ======================================================= */
+
+      const imgLogo =
+        document.getElementById('img-logo');
+
+      const logoText =
+        document.getElementById('logo-text');
+
+
+      if (data.cabecera.urlLogo) {
+
+        imgLogo.src =
+          data.cabecera.urlLogo;
+
+        imgLogo.style.display =
+          'block';
+
+        if (logoText) {
+          logoText.style.display =
+            'none';
+        }
+
+      } else {
+
+        imgLogo.style.display =
+          'none';
+
+        if (logoText) {
+
+          logoText.innerText =
+            data.cabecera.empresa || '';
+
+          logoText.style.display =
+            'inline';
+
+        }
+
+      }
+
+
+      /* =======================================================
+         DATOS DEL CLIENTE
+         ======================================================= */
+
+      document.getElementById(
+        'lbl-cliente'
+      ).innerText =
+        data.cabecera.cliente || '';
+
+
+      document.getElementById(
+        'lbl-doc'
+      ).innerText =
+        data.cabecera.documento || '';
+
+
+      document.getElementById(
+        'lbl-direccion'
+      ).innerText =
+        data.cabecera.direccion || '-';
+
+
+      document.getElementById(
+        'lbl-fecha'
+      ).innerText =
+        data.cabecera.fechaEmision || '';
+
+
+      document.getElementById(
+        'lbl-venc'
+      ).innerText =
+        data.cabecera.fechaVencimiento || '';
+
+
+      document.getElementById(
+        'lbl-condicion'
+      ).innerText =
+        data.cabecera.condicion || '';
+
+
+      document.getElementById(
+        'lbl-autorizado'
+      ).innerText =
+        data.cabecera.autorizado || '';
+
+
+      document.getElementById(
+        'lbl-creador'
+      ).innerText =
+        data.creador || 'SISTEMA';
+
+
+      document.getElementById(
+        'lbl-observaciones'
+      ).innerText =
+        data.cabecera.observaciones || '-';
+
+
+      /* =======================================================
+         PRODUCTOS
+         ======================================================= */
+
+      let totalKilos = 0;
+
+      const tbody =
+        document.getElementById(
+          'tabla-productos-body'
+        );
+
+      tbody.innerHTML = '';
+
+
+      if (data.productos &&
+          Array.isArray(data.productos)) {
+
+        data.productos.forEach(
+          function(prod) {
+
+            const row =
+              document.createElement('tr');
+
+
+            const cantidad =
+              parseFloat(
+                prod.cantidad
+              ) || 0;
+
+
+            row.innerHTML =
+
+              '<td>' +
+              (prod.codigo || '') +
+              '</td>' +
+
+              '<td style="text-align:right;">' +
+              cantidad.toFixed(4) +
+              '</td>' +
+
+              '<td style="text-align:center;">' +
+              (prod.um || 'KG') +
+              '</td>' +
+
+              '<td>' +
+              (prod.descripcion || '') +
+              '</td>';
+
+
+            tbody.appendChild(row);
+
+            totalKilos += cantidad;
+
+          }
+        );
+
+      }
+
+
+      /* =======================================================
+         TOTAL
+         ======================================================= */
+
+      document.getElementById(
+        'lbl-total-kilos'
+      ).innerText =
+        totalKilos.toFixed(4);
+
+
+      /* =======================================================
+         ABRIR IMPRESIÓN
+         ======================================================= */
+
+      setTimeout(
+        function() {
+          window.print();
+        },
+        800
+      );
+
     };
 
   </script>
+
 </body>
 </html>
