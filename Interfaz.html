@@ -287,17 +287,765 @@
       <div class="tab-container">
         
         <!-- PESTAÑA 1: DASHBOARD -->
-        <div id="tab-dashboard" class="tab-content active">
-          <div class="kpi-grid">
-            <div class="kpi-card"><h4>Descarte Campo (Kg)</h4><p id="kpi-campo">0.00</p></div>
-            <div class="kpi-card"><h4>Descarte Packing (Kg)</h4><p id="kpi-packing">0.00</p></div>
-            <div class="kpi-card text-blue"><h4>Total Consolidado</h4><p id="kpi-total">0.00</p></div>
-          </div>
-          <div class="chart-placeholder">
-            <h3>Espacio reservado para Gráficos Dinámicos</h3>
-          </div>
-        </div>
+      <div id="tab-dashboard" class="tab-content active">
 
+  <div class="dash-head">
+    <div>
+      <div class="dash-kicker">RESUMEN GENERAL DE OPERACIONES</div>
+      <h2>Dashboard Logístico</h2>
+      <p>Control de guías, ventas y movimiento de kilos.</p>
+    </div>
+    <button type="button" class="dash-refresh" onclick="cargarDashboardDatos(true)">
+      ↻ Actualizar
+    </button>
+  </div>
+
+  <div class="dash-filters">
+    <div class="dash-filter">
+      <label>EMPRESA</label>
+      <select id="dash-empresa">
+        <option value="TODAS">TODAS LAS EMPRESAS</option>
+        <option value="AGA">AGA</option>
+        <option value="LARAMA">LARAMA</option>
+        <option value="ARENUVA">ARENUVA</option>
+      </select>
+    </div>
+
+    <div class="dash-filter">
+      <label>FECHA INICIO</label>
+      <input type="date" id="dash-fecha-inicio">
+    </div>
+
+    <div class="dash-filter">
+      <label>FECHA FIN</label>
+      <input type="date" id="dash-fecha-fin">
+    </div>
+
+    <button type="button" class="dash-filter-btn" onclick="cargarDashboardDatos(true)">
+      🔎 Filtrar
+    </button>
+  </div>
+
+  <div id="dash-estado" class="dash-status">Cargando información...</div>
+
+  <div class="dash-kpis">
+    <div class="dash-card kpi-green">
+      <div class="kpi-icon">📦</div>
+      <div>
+        <span>KG DESCARTE</span>
+        <strong id="dash-kilos-procesados">0.00</strong>
+        <small>Total según LINK-FECHA</small>
+      </div>
+    </div>
+
+    <div class="dash-card kpi-blue">
+      <div class="kpi-icon">📋</div>
+      <div>
+        <span>GUÍAS EMITIDAS</span>
+        <strong id="dash-guias">0</strong>
+        <small>Correlativos registrados</small>
+      </div>
+    </div>
+
+    <div class="dash-card kpi-orange">
+      <div class="kpi-icon">🛒</div>
+      <div>
+        <span>VENTAS REGISTRADAS</span>
+        <strong id="dash-ventas">0</strong>
+        <small>Correlativos de venta</small>
+      </div>
+    </div>
+
+    <div class="dash-card kpi-teal">
+      <div class="kpi-icon">⚖️</div>
+      <div>
+        <span>KG VENDIDOS</span>
+        <strong id="dash-kilos-vendidos">0.00</strong>
+        <small>Total vendido</small>
+      </div>
+    </div>
+
+    <div class="dash-card kpi-purple">
+      <div class="kpi-icon">📦</div>
+      <div>
+        <span>PRODUCTOS</span>
+        <strong id="dash-productos">0</strong>
+        <small>Códigos movilizados</small>
+      </div>
+    </div>
+
+    <div class="dash-card kpi-dark">
+      <div class="kpi-icon">🏢</div>
+      <div>
+       <span>STOCK ACTUAL</span>
+        <strong id="dash-empresas">0</strong>
+        <small>Stock SAP consolidado</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash-grid-3">
+    <section class="dash-panel dash-wide">
+      <div class="dash-panel-title">KG MOVILIZADOS POR DÍA</div>
+      <div class="dash-chart"><canvas id="dash-chart-fechas"></canvas></div>
+    </section>
+
+    <section class="dash-panel">
+      <div class="dash-panel-title">KG POR EMPRESA</div>
+      <div class="dash-chart"><canvas id="dash-chart-empresa"></canvas></div>
+    </section>
+  </div>
+
+  <div class="dash-grid-3">
+    <section class="dash-panel">
+      <div class="dash-panel-title">DISTRIBUCIÓN DEL DESCARTE</div>
+      <div class="dash-chart dash-donut"><canvas id="dash-chart-descarte"></canvas></div>
+    </section>
+
+    <section class="dash-panel dash-wide">
+      <div class="dash-panel-title">TOP 10 PRODUCTOS POR KG</div>
+      <div class="dash-chart"><canvas id="dash-chart-productos"></canvas></div>
+    </section>
+  </div>
+
+  <div class="dash-grid-2">
+    <section class="dash-panel">
+      <div class="dash-panel-title">TOP CLIENTES POR KG</div>
+      <div class="dash-chart"><canvas id="dash-chart-clientes"></canvas></div>
+    </section>
+
+    <section class="dash-panel">
+      <div class="dash-panel-title">RESUMEN DE GUÍAS PROVISIONALES</div>
+      <div class="dash-mini-kpis">
+        <div><span>GUÍAS</span><strong id="dash-mini-guias">0</strong></div>
+        <div><span>KG</span><strong id="dash-mini-kg-guias">0.00</strong></div>
+      </div>
+      <div class="dash-table-wrap">
+        <table class="dash-table">
+          <thead>
+            <tr><th>CORRELATIVO</th><th>EMPRESA</th><th>CLIENTE</th><th>FECHA</th><th>KG</th></tr>
+          </thead>
+          <tbody id="dash-tabla-guias"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="dash-grid-2">
+    <section class="dash-panel">
+      <div class="dash-panel-title">RESUMEN DE VENTAS</div>
+      <div class="dash-mini-kpis">
+        <div><span>VENTAS</span><strong id="dash-mini-ventas">0</strong></div>
+        <div><span>KG VENDIDOS</span><strong id="dash-mini-kg-ventas">0.00</strong></div>
+      </div>
+      <div class="dash-table-wrap">
+        <table class="dash-table">
+          <thead>
+            <tr><th>CORRELATIVO</th><th>EMPRESA</th><th>CLIENTE</th><th>FECHA</th><th>KG</th></tr>
+          </thead>
+          <tbody id="dash-tabla-ventas"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="dash-panel dash-alert-panel">
+      <div class="dash-panel-title">ESTADO DEL SISTEMA</div>
+      <div class="dash-system-row ok">
+        <span>●</span>
+        <div><strong>Dashboard conectado</strong><small>Datos obtenidos del maestro del sistema.</small></div>
+      </div>
+      <div class="dash-system-row info">
+        <span>●</span>
+        <div><strong>Guías Provisionales</strong><small>Se utilizan los registros guardados en HISTORIAL_GUIAS.</small></div>
+      </div>
+      <div class="dash-system-row info">
+        <span>●</span>
+        <div><strong>Ventas</strong><small>Se utilizan los registros guardados en VENTAS.</small></div>
+      </div>
+      <div class="dash-system-note">
+        El módulo de Cruce de Stocks no se modifica en esta etapa.
+      </div>
+    </section>
+  </div>
+
+  <div class="dash-footer">Sistema Logístico LARAMA BERRIES © 2026</div>
+</div>
+
+<style>
+  #tab-dashboard {
+    padding: 18px !important;
+    box-sizing: border-box;
+  }
+
+  #tab-dashboard .dash-head {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:20px;
+    margin-bottom:16px;
+  }
+
+  #tab-dashboard .dash-kicker {
+    color:#5E8A8F;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.8px;
+  }
+
+  #tab-dashboard .dash-head h2 {
+    margin:3px 0;
+    color:#29484B;
+    font-size:25px;
+  }
+
+  #tab-dashboard .dash-head p {
+    margin:0;
+    color:#718184;
+    font-size:12px;
+  }
+
+  #tab-dashboard .dash-refresh,
+  #tab-dashboard .dash-filter-btn {
+    border:0;
+    border-radius:7px;
+    background:#2F7D62;
+    color:#fff;
+    font-weight:800;
+    cursor:pointer;
+    padding:10px 16px;
+  }
+
+  #tab-dashboard .dash-filters {
+    display:grid;
+    grid-template-columns:1.2fr 1fr 1fr auto;
+    gap:12px;
+    background:#fff;
+    padding:14px;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+    margin-bottom:12px;
+  }
+
+  #tab-dashboard .dash-filter {
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+
+  #tab-dashboard .dash-filter label {
+    color:#526C70;
+    font-size:10px;
+    font-weight:800;
+  }
+
+  #tab-dashboard .dash-filter select,
+  #tab-dashboard .dash-filter input {
+    width:100%;
+    box-sizing:border-box;
+    border:1px solid #CBD8D9;
+    border-radius:6px;
+    padding:9px 10px;
+    background:#F8FAFA;
+    color:#31494C;
+    font-size:12px;
+    outline:none;
+  }
+
+  #tab-dashboard .dash-filter-btn {
+    align-self:end;
+    height:36px;
+  }
+
+  #tab-dashboard .dash-status {
+    min-height:16px;
+    color:#718184;
+    font-size:11px;
+    margin:4px 2px 10px;
+  }
+
+  #tab-dashboard .dash-kpis {
+    display:grid;
+    grid-template-columns:repeat(6, minmax(0, 1fr));
+    gap:12px;
+    margin-bottom:12px;
+  }
+
+  #tab-dashboard .dash-card {
+    background:#fff;
+    border-radius:10px;
+    padding:14px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+    min-width:0;
+  }
+
+  #tab-dashboard .kpi-icon {
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#EFF7F4;
+    font-size:18px;
+    flex:0 0 38px;
+  }
+
+  #tab-dashboard .dash-card span {
+    display:block;
+    color:#6A7B7D;
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:.4px;
+  }
+
+  #tab-dashboard .dash-card strong {
+    display:block;
+    color:#263D40;
+    font-size:21px;
+    line-height:1.2;
+    margin:3px 0;
+  }
+
+  #tab-dashboard .dash-card small {
+    color:#8A989A;
+    font-size:9px;
+  }
+
+  #tab-dashboard .kpi-blue .kpi-icon { background:#EEF5FF; }
+  #tab-dashboard .kpi-orange .kpi-icon { background:#FFF5E9; }
+  #tab-dashboard .kpi-purple .kpi-icon { background:#F4EEFF; }
+  #tab-dashboard .kpi-dark .kpi-icon { background:#EEF3F4; }
+
+  #tab-dashboard .dash-grid-3,
+  #tab-dashboard .dash-grid-2 {
+    display:grid;
+    gap:12px;
+    margin-bottom:12px;
+  }
+
+  #tab-dashboard .dash-grid-3 {
+    grid-template-columns:1.35fr .65fr;
+  }
+
+  #tab-dashboard .dash-grid-2 {
+    grid-template-columns:1fr 1fr;
+  }
+
+  #tab-dashboard .dash-panel {
+    background:#fff;
+    border-radius:10px;
+    padding:14px;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+    min-width:0;
+  }
+
+  #tab-dashboard .dash-panel-title {
+    color:#38575A;
+    font-size:12px;
+    font-weight:900;
+    margin-bottom:10px;
+  }
+
+  #tab-dashboard .dash-chart {
+    position:relative;
+    height:250px;
+  }
+
+  #tab-dashboard .dash-donut {
+    height:250px;
+  }
+
+  #tab-dashboard .dash-mini-kpis {
+    display:flex;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  #tab-dashboard .dash-mini-kpis > div {
+    flex:1;
+    background:#F5F8F8;
+    border-radius:7px;
+    padding:8px 10px;
+  }
+
+  #tab-dashboard .dash-mini-kpis span {
+    display:block;
+    color:#718184;
+    font-size:9px;
+    font-weight:800;
+  }
+
+  #tab-dashboard .dash-mini-kpis strong {
+    color:#29484B;
+    font-size:17px;
+  }
+
+  #tab-dashboard .dash-table-wrap {
+    overflow:auto;
+    max-height:220px;
+  }
+
+  #tab-dashboard .dash-table {
+    width:100%;
+    border-collapse:collapse;
+    font-size:10px;
+  }
+
+  #tab-dashboard .dash-table th {
+    background:#F2F6F7;
+    color:#587174;
+    padding:7px 6px;
+    text-align:left;
+    font-size:8px;
+    white-space:nowrap;
+  }
+
+  #tab-dashboard .dash-table td {
+    border-bottom:1px solid #EDF1F1;
+    padding:7px 6px;
+    color:#526466;
+    white-space:nowrap;
+  }
+
+  #tab-dashboard .dash-table td:last-child {
+    text-align:right;
+    font-weight:800;
+  }
+
+  #tab-dashboard .dash-system-row {
+    display:flex;
+    gap:9px;
+    padding:10px 0;
+    border-bottom:1px solid #EDF1F1;
+  }
+
+  #tab-dashboard .dash-system-row > span {
+    font-size:14px;
+  }
+
+  #tab-dashboard .dash-system-row.ok > span { color:#2F9D6C; }
+  #tab-dashboard .dash-system-row.info > span { color:#4285C5; }
+
+  #tab-dashboard .dash-system-row strong,
+  #tab-dashboard .dash-system-row small {
+    display:block;
+  }
+
+  #tab-dashboard .dash-system-row strong {
+    color:#344D50;
+    font-size:11px;
+  }
+
+  #tab-dashboard .dash-system-row small {
+    color:#879496;
+    font-size:9px;
+    margin-top:2px;
+  }
+
+  #tab-dashboard .dash-system-note {
+    margin-top:12px;
+    padding:9px;
+    background:#FFF8E8;
+    color:#8A7132;
+    border-radius:6px;
+    font-size:9px;
+  }
+
+  #tab-dashboard .dash-footer {
+    text-align:center;
+    color:#8A989A;
+    font-size:9px;
+    padding:8px 0 2px;
+  }
+
+  @media (max-width:1200px) {
+    #tab-dashboard .dash-kpis {
+      grid-template-columns:repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width:850px) {
+    #tab-dashboard .dash-filters,
+    #tab-dashboard .dash-grid-3,
+    #tab-dashboard .dash-grid-2 {
+      grid-template-columns:1fr;
+    }
+
+    #tab-dashboard .dash-kpis {
+      grid-template-columns:repeat(2, 1fr);
+    }
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  var dashCharts = {};
+
+  function dashNumero(valor) {
+    var n = Number(valor);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function dashKg(valor) {
+    return dashNumero(valor).toLocaleString('es-PE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function dashEscapar(valor) {
+    return String(valor == null ? '' : valor)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function cargarDashboardDatos(mostrarMensaje) {
+    var estado = document.getElementById('dash-estado');
+    if (estado) estado.textContent = 'Cargando información...';
+
+    var empresa = document.getElementById('dash-empresa').value;
+    var fechaInicio = document.getElementById('dash-fecha-inicio').value;
+    var fechaFin = document.getElementById('dash-fecha-fin').value;
+
+    google.script.run
+      .withSuccessHandler(renderizarDashboardDatos)
+      .withFailureHandler(function(error) {
+        if (estado) estado.textContent = 'No se pudo cargar el Dashboard.';
+        console.error(error);
+      })
+      .getDashboardData(empresa, fechaInicio, fechaFin);
+  }
+
+  function renderizarDashboardDatos(respuesta) {
+    var estado = document.getElementById('dash-estado');
+
+    if (!respuesta || !respuesta.exito) {
+      if (estado) estado.textContent = (respuesta && respuesta.mensaje)
+        ? respuesta.mensaje
+        : 'No se pudo cargar el Dashboard.';
+      return;
+    }
+
+    if (estado) {
+      estado.textContent =
+        'Actualizado · Empresa: ' + respuesta.filtros.empresa +
+        (respuesta.filtros.fechaInicio || respuesta.filtros.fechaFin
+          ? ' · Rango seleccionado'
+          : ' · Todos los registros');
+    }
+
+    var k = respuesta.kpis || {};
+
+    document.getElementById('dash-kilos-procesados').textContent =
+  dashKg(k.kilosDescarte);
+    document.getElementById('dash-guias').textContent = k.guiasEmitidas || 0;
+    document.getElementById('dash-ventas').textContent = k.ventasRegistradas || 0;
+    document.getElementById('dash-kilos-vendidos').textContent = dashKg(k.kilosVendidos);
+    document.getElementById('dash-productos').textContent = k.productos || 0;
+    document.getElementById('dash-empresas').textContent =
+  dashKg(k.stockActual);
+
+    document.getElementById('dash-mini-guias').textContent = k.guiasEmitidas || 0;
+    document.getElementById('dash-mini-kg-guias').textContent = dashKg(k.kilosProcesados);
+    document.getElementById('dash-mini-ventas').textContent = k.ventasRegistradas || 0;
+    document.getElementById('dash-mini-kg-ventas').textContent = dashKg(k.kilosVendidos);
+
+    dashCrearGraficos(respuesta);
+    dashRenderTablaGuias(respuesta.recientesGuias || []);
+    dashRenderTablaVentas(respuesta.recientesVentas || []);
+  }
+
+  function dashDestruir(nombre) {
+    if (dashCharts[nombre]) {
+      dashCharts[nombre].destroy();
+      dashCharts[nombre] = null;
+    }
+  }
+
+  function dashCrearGraficos(data) {
+    dashDestruir('fechas');
+    dashDestruir('empresa');
+    dashDestruir('descarte');
+    dashDestruir('productos');
+    dashDestruir('clientes');
+
+   var fechas = data.porFechaReporte || [];
+  var empresas = data.porEmpresaReporte || [];
+    var productos = data.porVariedadReporte || [];
+    var clientes = data.porCliente || [];
+
+    dashCharts.fechas = new Chart(
+      document.getElementById('dash-chart-fechas'),
+      {
+        type: 'line',
+        data: {
+          labels: fechas.map(function(x) { return x.fecha; }),
+          datasets: [{
+            label: 'KG',
+            data: fechas.map(function(x) { return x.kg; }),
+            borderWidth: 2,
+            tension: .3,
+            fill: true
+          }]
+        },
+        options: dashOpciones()
+      }
+    );
+
+    dashCharts.empresa = new Chart(
+      document.getElementById('dash-chart-empresa'),
+      {
+        type: 'bar',
+        data: {
+          labels: empresas.map(function(x) { return x.empresa; }),
+          datasets: [{
+            label: 'KG',
+            data: empresas.map(function(x) { return x.kg; }),
+            borderWidth: 0
+          }]
+        },
+        options: dashOpciones('y')
+      }
+    );
+
+    dashCharts.descarte = new Chart(
+      document.getElementById('dash-chart-descarte'),
+      {
+        type: 'doughnut',
+        data: {
+          labels: ['CAMPO', 'PACKING'],
+          datasets: [{
+            data: [data.kpis.kilosCampo || 0, data.kpis.kilosPacking || 0],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{ legend:{ position:'bottom' } }
+        }
+      }
+    );
+
+    dashCharts.productos = new Chart(
+      document.getElementById('dash-chart-productos'),
+      {
+        type: 'bar',
+        data: {
+          labels: productos.map(function(x) {
+            return (x.variedad || x.descripcion || x.codigo).substring(0, 34);
+          }),
+          datasets: [{
+            label:'KG',
+            data:productos.map(function(x){ return x.kg; }),
+            borderWidth:0
+          }]
+        },
+        options: dashOpciones('y')
+      }
+    );
+
+    dashCharts.clientes = new Chart(
+      document.getElementById('dash-chart-clientes'),
+      {
+        type: 'bar',
+        data: {
+          labels: clientes.map(function(x) {
+            return (x.cliente || '').substring(0, 30);
+          }),
+          datasets: [{
+            label:'KG',
+            data:clientes.map(function(x){ return x.kg; }),
+            borderWidth:0
+          }]
+        },
+        options: dashOpciones('y')
+      }
+    );
+  }
+
+  function dashOpciones(indexAxis) {
+    return {
+      responsive:true,
+      maintainAspectRatio:false,
+      indexAxis:indexAxis || 'x',
+      plugins:{
+        legend:{ display:false }
+      },
+      scales:{
+        x:{
+          beginAtZero:true,
+          ticks:{ font:{ size:9 } },
+          grid:{ display:false }
+        },
+        y:{
+          beginAtZero:true,
+          ticks:{ font:{ size:9 } },
+          grid:{ color:'#EEF2F2' }
+        }
+      }
+    };
+  }
+
+  function dashRenderTablaGuias(lista) {
+    var tbody = document.getElementById('dash-tabla-guias');
+
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="5">Sin registros en el periodo.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = lista.map(function(x) {
+      return '<tr>' +
+        '<td>' + dashEscapar(x.correlativo) + '</td>' +
+        '<td>' + dashEscapar(x.empresa) + '</td>' +
+        '<td>' + dashEscapar(x.cliente || '-') + '</td>' +
+        '<td>' + dashEscapar(x.fecha || '-') + '</td>' +
+        '<td>' + dashKg(x.kg) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function dashRenderTablaVentas(lista) {
+    var tbody = document.getElementById('dash-tabla-ventas');
+
+    if (!lista.length) {
+      tbody.innerHTML = '<tr><td colspan="5">Sin registros en el periodo.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = lista.map(function(x) {
+      return '<tr>' +
+        '<td>' + dashEscapar(x.correlativo) + '</td>' +
+        '<td>' + dashEscapar(x.empresa) + '</td>' +
+        '<td>' + dashEscapar(x.cliente || '-') + '</td>' +
+        '<td>' + dashEscapar(x.fecha || '-') + '</td>' +
+        '<td>' + dashKg(x.kg) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var inicio = document.getElementById('dash-fecha-inicio');
+    var fin = document.getElementById('dash-fecha-fin');
+
+    // Por defecto: últimos 30 días.
+    var hoy = new Date();
+    var hace30 = new Date();
+    hace30.setDate(hoy.getDate() - 30);
+
+    if (inicio) inicio.value = hace30.toISOString().slice(0,10);
+    if (fin) fin.value = hoy.toISOString().slice(0,10);
+
+    cargarDashboardDatos(false);
+  });
+</script>
         <!-- PESTAÑA 2: REPORTE -->
         <div id="tab-reporte" class="tab-content">
           <div class="report-filters">

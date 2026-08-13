@@ -1485,7 +1485,56 @@ function agregarFilaVenta() {
 
   tbody.appendChild(tr);
 }
+// ============================================================
+// BUSCAR VARIEDAD POR CÓDIGO EN VENTAS
+// ============================================================
 
+function escucharCambioCodigoVenta(codigoInput) {
+
+  var fila = codigoInput.closest('tr');
+  if (!fila) return;
+
+  var inputs = fila.querySelectorAll('input');
+
+  var variedadInput = inputs[1];
+
+  var codigo = codigoInput.value.trim();
+
+  if (!codigo) {
+    variedadInput.value = '';
+    variedadInput.style.color = '#334155';
+    return;
+  }
+
+  variedadInput.value = '🔍 Buscando...';
+  variedadInput.style.color = '#2563eb';
+
+  google.script.run
+    .withSuccessHandler(function(resultado) {
+
+      if (resultado && resultado.exito) {
+
+        variedadInput.value = resultado.descripcion || '';
+        variedadInput.style.color = '#16a34a';
+
+      } else {
+
+        variedadInput.value = 'Código no encontrado';
+        variedadInput.style.color = '#dc2626';
+
+      }
+
+    })
+    .withFailureHandler(function(error) {
+
+      variedadInput.value = 'Error de búsqueda';
+      variedadInput.style.color = '#dc2626';
+
+      console.error(error);
+
+    })
+    .buscarProductoPorCodigo(codigo);
+}
 
 // ============================================================
 // ELIMINAR FILA

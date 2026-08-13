@@ -964,8 +964,7 @@ function obtenerProductosDesdeLinkVenta(empresaSeleccionada, urlOrigen) {
       return isNaN(n) ? 0 : n;
     };
 
-    var productos = [];
-    var vistos = {};
+   var productos = [];
 
     for (var i = 0; i < datos.length; i++) {
       var fila = datos[i];
@@ -980,12 +979,6 @@ function obtenerProductosDesdeLinkVenta(empresaSeleccionada, urlOrigen) {
       if (!codigo || !descripcion) continue;
       if (!/^\d+$/.test(codigo.replace(/\s/g, ''))) continue;
       if (cantidad <= 0) continue;
-
-      // No repetimos el mismo código si aparece más de una vez.
-      // Se conserva la primera ocurrencia tal como aparece en el reporte.
-      var clave = codigo.toUpperCase();
-      if (vistos[clave]) continue;
-      vistos[clave] = true;
 
       productos.push({
         codigo: codigo,
