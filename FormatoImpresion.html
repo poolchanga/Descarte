@@ -33,7 +33,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px dashed #ccc; /* Espacio reservado para el logo */
+      border: none;
     }
     .company-details {
       width: 40%;
@@ -135,7 +135,7 @@
         </div>
       <div class="document-box">
         <div class="document-title">NOTA INTERNA DE ENTREGA</div>
-        <div class="document-number" id="lbl-correlativo">DESC-CAL-000</div>
+        <div class="document-number" id="lbl-correlativo">T001-00000001</div>
       </div>
     </div>
 
@@ -188,7 +188,7 @@
 
   <script>
       window.onload = function() {
-      const data = window.opener.datosImpresionActual;
+      const data = window.opener && window.opener.datosImpresionActual ? window.opener.datosImpresionActual : null;
       if (data) {
         document.getElementById('lbl-correlativo').innerText = data.correlativo;
         document.getElementById('emisor-nombre').innerText = data.cabecera.empresa;

@@ -37,14 +37,14 @@
     };
     document.getElementById('txt-titulo-pestana').innerText = titulos[idTab];
 
-  if (idTab === 'tab-guias') {
-    inicializarModuloGuias();
-}
+    if (idTab === 'tab-guias') {
+      inicializarModuloGuias();
+    }
 
-if (idTab === 'tab-ventas') {
-    inicializarModuloVentas();
+    if (idTab === 'tab-ventas') {
+      inicializarModuloVentas();
+    }
   }
-}
 
   var datosReporteActual = [];
 
@@ -349,246 +349,508 @@ if (idTab === 'tab-ventas') {
 
 
   // MÓDULO GUÍAS PROVISIONALES
+  var productosGuiasDisponibles = [];
+
   function inicializarModuloGuias() {
-    document.getElementById('reg-cliente').value = '';
-    document.getElementById('reg-documento').value = '';
-    document.getElementById('reg-direccion').value = '';
-    document.getElementById('reg-observaciones').value = '';
-    
+    var empresa = document.getElementById('reg-empresa');
+    var cliente = document.getElementById('reg-cliente');
+    var documento = document.getElementById('reg-documento');
+    var condicion = document.getElementById('reg-condicion');
+    var autorizado = document.getElementById('reg-autorizado');
+    var fechaEmision = document.getElementById('reg-fecha-emision');
+    var fechaVencimiento = document.getElementById('reg-fecha-vencimiento');
+    var direccion = document.getElementById('reg-direccion');
+    var observaciones = document.getElementById('reg-observaciones');
+    var link = document.getElementById('reg-link-origen');
+    var mensajeLink = document.getElementById('reg-link-mensaje');
+    var banner = document.getElementById('banner-emisor-fiscal');
     var tbody = document.getElementById('tbody-detalle-guias');
+
+    if (cliente) cliente.value = '';
+    if (documento) documento.value = '';
+    if (condicion) condicion.value = 'CONTADO';
+    if (autorizado) autorizado.value = '';
+    if (direccion) direccion.value = '';
+    if (observaciones) observaciones.value = '';
+    if (link) link.value = '';
+    if (mensajeLink) {
+      mensajeLink.innerText = '';
+      mensajeLink.style.color = '#64748b';
+    }
+    if (banner) banner.style.display = 'none';
+
+    var hoy = obtenerFechaInputHoy();
+    if (fechaEmision) fechaEmision.value = hoy;
+    if (fechaVencimiento) fechaVencimiento.value = hoy;
+
+    productosGuiasDisponibles = [];
 
     if (tbody) {
       tbody.innerHTML = '';
       agregarFilaProducto();
     }
 
-    if (document.getElementById('txt-total-kilos')) {
-      document.getElementById('txt-total-kilos').innerText = "0.000";
+    calcularTotalKilosEnVivo();
+
+    if (empresa && empresa.value) {
+      actualizarEmpresaEmisora();
+    } else {
+      var lblCorr = document.getElementById('txt-correlativo');
+      if (lblCorr) lblCorr.innerText = 'Seleccione empresa';
     }
+  }
+
+  function obtenerFechaInputHoy() {
+    var hoy = new Date();
+    var anio = hoy.getFullYear();
+    var mes = String(hoy.getMonth() + 1).padStart(2, '0');
+    var dia = String(hoy.getDate()).padStart(2, '0');
+    return anio + '-' + mes + '-' + dia;
+  }
+
+  function formatearFechaGuia(fecha) {
+    if (!fecha) return '-';
+    var partes = fecha.split('-');
+    if (partes.length === 3) return partes[2] + '/' + partes[1] + '/' + partes[0];
+    return fecha;
+  }
+
+  function actualizarEmpresaEmisora() {
+    var codEmpresa = document.getElementById('reg-empresa').value.trim().toUpperCase();
+    var banner = document.getElementById('banner-emisor-fiscal');
+    var txtSocial = document.getElementById('txt-emisor-social');
+    var txtRuc = document.getElementById('txt-emisor-ruc');
+    var lblCorr = document.getElementById('txt-correlativo');
+
+    if (!codEmpresa) {
+      if (banner) banner.style.display = 'none';
+      if (lblCorr) lblCorr.innerText = 'Seleccione empresa';
+      return;
+    }
+
+    if (lblCorr) lblCorr.innerText = 'Cargando...';
+
+    google.script.run
+      .withSuccessHandler(function(datos) {
+        if (datos && datos.razonSocial) {
+          if (txtSocial) txtSocial.innerText = datos.razonSocial;
+          if (txtRuc) txtRuc.innerText = 'RUC: ' + datos.ruc;
+          if (banner) banner.style.display = 'block';
+        } else {
+          if (banner) banner.style.display = 'none';
+        }
+      })
+      .withFailureHandler(function(error) {
+        if (banner) banner.style.display = 'none';
+        console.error('Error obteniendo empresa emisora:', error);
+      })
+      .obtenerDatosEmpresaEmisora(codEmpresa);
 
     google.script.run
       .withSuccessHandler(function(siguienteCorrelativo) {
-        var lblCorr = document.getElementById('txt-correlativo');
-
-        if (lblCorr) {
-          lblCorr.innerText = siguienteCorrelativo;
-        }
+        if (lblCorr) lblCorr.innerText = siguienteCorrelativo || 'T001-00000001';
       })
-      .obtenerSiguienteCorrelativo();
+      .withFailureHandler(function(error) {
+        if (lblCorr) lblCorr.innerText = 'No disponible';
+        console.error('Error obteniendo correlativo:', error);
+      })
+      .obtenerSiguienteCorrelativo(codEmpresa);
   }
-
 
   function agregarFilaProducto() {
     var tbody = document.getElementById('tbody-detalle-guias');
-    var tr = document.createElement('tr');
+    if (!tbody) return;
 
-    tr.style.borderBottom = "1px solid #f1f5f9";
-    
+    var tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #f1f5f9';
+
     tr.innerHTML = `
       <td style="padding: 8px 10px;">
-        <input type="text" class="input-codigo-prod" oninput="escucharCambioCodigo(this)" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px;" placeholder="Escriba código...">
+        <input type="text" class="input-codigo-prod" list="lista-codigos-guia" oninput="escucharCambioCodigo(this)" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px;" placeholder="Escriba código...">
       </td>
-
       <td style="padding: 8px 10px;">
         <input type="text" class="input-desc-prod" style="width:100%; padding:8px; border:none; background:transparent; font-weight:bold; color:#334155; font-size:12px;" readonly value="Proceda a buscar...">
       </td>
-
       <td style="padding: 8px 10px;">
-        <input type="number" class="input-cant-prod" oninput="calcularTotalKilosEnVivo()" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; text-align:right; font-size:12px; font-weight:bold;" value="0.000" step="0.001">
+        <input type="number" class="input-cant-prod" oninput="calcularTotalKilosEnVivo()" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:4px; text-align:right; font-size:12px; font-weight:bold;" value="0.000" min="0" step="0.001">
       </td>
-
       <td style="padding: 8px 10px;">
-        <input type="text" style="width:100%; padding:8px; border:none; background:transparent; text-align:center; font-size:12px; color:#64748b;" value="KG" readonly>
+        <input type="text" class="input-um-prod" style="width:100%; padding:8px; border:none; background:transparent; text-align:center; font-size:12px; color:#64748b;" value="KG" readonly>
       </td>
-
       <td style="text-align:center; padding: 8px 5px;">
         <button type="button" onclick="removerFilaYRecalcular(this);" style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; font-size:14px;">X</button>
       </td>
     `;
-    
+
     tbody.appendChild(tr);
   }
 
+  function actualizarListaCodigosGuia() {
+    var datalist = document.getElementById('lista-codigos-guia');
+    if (!datalist) return;
+
+    datalist.innerHTML = '';
+    productosGuiasDisponibles.forEach(function(producto) {
+      var option = document.createElement('option');
+      option.value = producto.codigo || '';
+      option.label = producto.descripcion || '';
+      datalist.appendChild(option);
+    });
+  }
 
   function escucharCambioCodigo(inputElement) {
     var codigoInput = inputElement.value.trim();
     var fila = inputElement.closest('tr');
-    var descInput = fila.querySelector('.input-desc-prod');
-    
+    var descInput = fila ? fila.querySelector('.input-desc-prod') : null;
+
+    if (!descInput) return;
+
     if (codigoInput.length === 0) {
-      descInput.value = "Proceda a buscar...";
+      descInput.value = 'Proceda a buscar...';
+      descInput.style.color = '#334155';
       return;
     }
-    
-    descInput.value = "🔍 Buscando...";
-    descInput.style.color = "#2563eb";
+
+    var productoCargado = productosGuiasDisponibles.find(function(producto) {
+      return String(producto.codigo || '').trim().toUpperCase() === codigoInput.toUpperCase();
+    });
+
+    if (productoCargado) {
+      descInput.value = productoCargado.descripcion || '';
+      descInput.style.color = '#16a34a';
+      return;
+    }
+
+    descInput.value = '🔍 Buscando...';
+    descInput.style.color = '#2563eb';
 
     google.script.run
       .withSuccessHandler(function(resultado) {
-        descInput.value = resultado.descripcion;
-
-        if (resultado.exito) {
-          descInput.style.color = "#16a34a";
+        if (resultado && resultado.exito) {
+          descInput.value = resultado.descripcion || '';
+          descInput.style.color = '#16a34a';
         } else {
-          descInput.style.color = "#dc2626";
+          descInput.value = 'PRODUCTO NO ENCONTRADO';
+          descInput.style.color = '#dc2626';
         }
+      })
+      .withFailureHandler(function(error) {
+        descInput.value = 'Error de búsqueda';
+        descInput.style.color = '#dc2626';
+        console.error('Error buscando producto:', error);
       })
       .buscarProductoPorCodigo(codigoInput);
   }
 
-
   function calcularTotalKilosEnVivo() {
     var total = 0;
-    var camposCantidad = document.querySelectorAll('.input-cant-prod');
-    
-    camposCantidad.forEach(function(input) {
-      var valor = parseFloat(input.value) || 0;
-      total += valor;
+    document.querySelectorAll('#tbody-detalle-guias .input-cant-prod').forEach(function(input) {
+      total += parseFloat(input.value) || 0;
     });
 
-    document.getElementById('txt-total-kilos').innerText = total.toFixed(3);
+    var totalElemento = document.getElementById('txt-total-kilos');
+    if (totalElemento) totalElemento.innerText = total.toFixed(3);
   }
 
-
   function removerFilaYRecalcular(boton) {
-    boton.closest('tr').remove();
+    var tbody = document.getElementById('tbody-detalle-guias');
+    if (!tbody) return;
+
+    var filas = tbody.querySelectorAll('tr');
+    if (filas.length <= 1) {
+      filas[0].querySelectorAll('input').forEach(function(input) {
+        input.value = input.classList.contains('input-cant-prod') ? '0.000' : '';
+      });
+      var desc = filas[0].querySelector('.input-desc-prod');
+      if (desc) desc.value = 'Proceda a buscar...';
+    } else {
+      boton.closest('tr').remove();
+    }
+
     calcularTotalKilosEnVivo();
   }
 
+  function cargarProductosDesdeLinkGuia() {
+    var empresa = document.getElementById('reg-empresa').value.trim().toUpperCase();
+    var link = document.getElementById('reg-link-origen').value.trim();
+    var mensaje = document.getElementById('reg-link-mensaje');
+    var boton = document.getElementById('btn-cargar-link-guia');
 
-  function actualizarEmpresaEmisora() {
-    var codEmpresa = document.getElementById('reg-empresa').value;
-    var banner = document.getElementById('banner-emisor-fiscal');
-    var txtSocial = document.getElementById('txt-emisor-social');
-    var txtRuc = document.getElementById('txt-emisor-ruc');
-    
-    if (!codEmpresa) {
-      banner.style.display = "none";
+    if (!empresa) {
+      alert('Seleccione una empresa antes de cargar el link.');
       return;
     }
-    
+
+    if (!link) {
+      alert('Pegue el link de origen antes de cargar los productos.');
+      return;
+    }
+
+    if (mensaje) {
+      mensaje.innerText = '🔍 Leyendo información del archivo...';
+      mensaje.style.color = '#2563eb';
+    }
+    if (boton) {
+      boton.disabled = true;
+      boton.innerText = 'CARGANDO...';
+    }
+
     google.script.run
-      .withSuccessHandler(function(datos) {
-        if (datos.razonSocial) {
-          txtSocial.innerText = datos.razonSocial;
-          txtRuc.innerText = "RUC: " + datos.ruc;
-          banner.style.display = "block";
-        } else {
-          banner.style.display = "none";
+      .withSuccessHandler(function(respuesta) {
+        if (boton) {
+          boton.disabled = false;
+          boton.innerText = '🔄 CARGAR';
+        }
+
+        if (!respuesta || !respuesta.exito) {
+          productosGuiasDisponibles = [];
+          actualizarListaCodigosGuia();
+          if (mensaje) {
+            mensaje.innerText = '❌ ' + (respuesta && respuesta.mensaje ? respuesta.mensaje : 'No se pudieron cargar los productos.');
+            mensaje.style.color = '#dc2626';
+          }
+          return;
+        }
+
+        productosGuiasDisponibles = respuesta.productos || [];
+        actualizarListaCodigosGuia();
+
+        var tbody = document.getElementById('tbody-detalle-guias');
+        if (tbody) {
+          tbody.innerHTML = '';
+          productosGuiasDisponibles.forEach(function(producto) {
+            agregarFilaProducto();
+            var fila = tbody.lastElementChild;
+            if (!fila) return;
+
+            var codigo = fila.querySelector('.input-codigo-prod');
+            var descripcion = fila.querySelector('.input-desc-prod');
+            var cantidad = fila.querySelector('.input-cant-prod');
+            var um = fila.querySelector('.input-um-prod');
+
+            if (codigo) codigo.value = producto.codigo || '';
+            if (descripcion) {
+              descripcion.value = producto.descripcion || '';
+              descripcion.style.color = '#16a34a';
+            }
+            if (cantidad) cantidad.value = Number(producto.cantidad || 0).toFixed(3);
+            if (um) um.value = producto.um || 'KG';
+          });
+        }
+
+        calcularTotalKilosEnVivo();
+
+        if (mensaje) {
+          mensaje.innerText = '✓ ' + productosGuiasDisponibles.length + ' productos cargados desde ' + (respuesta.pestaña || 'el archivo') + '.';
+          mensaje.style.color = '#16a34a';
         }
       })
-      .obtenerDatosEmpresaEmisora(codEmpresa);
+      .withFailureHandler(function(error) {
+        if (boton) {
+          boton.disabled = false;
+          boton.innerText = '🔄 CARGAR';
+        }
+        if (mensaje) {
+          mensaje.innerText = '❌ Error en el servidor: ' + error.message;
+          mensaje.style.color = '#dc2626';
+        }
+      })
+      .obtenerProductosDesdeLinkGuia(empresa, link);
   }
 
+  function buscarClientePorRucGuia(rucInput) {
+    var ruc = rucInput.value.trim();
+    var clienteInput = document.getElementById('reg-cliente');
+    if (!clienteInput || !ruc) return;
+
+    clienteInput.value = '🔍 Buscando...';
+    clienteInput.style.color = '#2563eb';
+
+    google.script.run
+      .withSuccessHandler(function(resultado) {
+        if (resultado && resultado.exito && resultado.cliente) {
+          clienteInput.value = resultado.cliente;
+          clienteInput.style.color = '#16a34a';
+        } else {
+          clienteInput.value = '';
+          clienteInput.style.color = '#334155';
+          clienteInput.focus();
+        }
+      })
+      .withFailureHandler(function(error) {
+        clienteInput.value = '';
+        clienteInput.style.color = '#dc2626';
+        console.error('Error buscando cliente por RUC:', error);
+      })
+      .buscarClientePorRuc(ruc);
+  }
 
   function limpiarFormularioGuia() {
-    if (confirm("¿Está seguro de limpiar todo el formulario de la guía actual?")) {
+    if (confirm('¿Está seguro de limpiar todo el formulario de la guía actual?')) {
       inicializarModuloGuias();
     }
   }
 
-
-  /**
-   * Procesa el guardado de la Guía de Remisión y abre la ventana de impresión.
-   */
   function procesarGuardadoGuia() {
-    var empresa = document.getElementById('select-empresa').value;
-    var correlativo = document.getElementById('input-correlativo').value;
-    var fecha = document.getElementById('input-fecha').value;
-    var chofer = document.getElementById('input-chofer').value;
-    var placa = document.getElementById('input-placa').value;
-    var observaciones = document.getElementById('input-observaciones').value;
+    var empresa = document.getElementById('reg-empresa').value.trim().toUpperCase();
+    var cliente = document.getElementById('reg-cliente').value.trim();
+    var documento = document.getElementById('reg-documento').value.trim();
+    var condicion = document.getElementById('reg-condicion').value.trim();
+    var autorizado = document.getElementById('reg-autorizado').value.trim();
+    var fechaEmision = document.getElementById('reg-fecha-emision').value;
+    var fechaVencimiento = document.getElementById('reg-fecha-vencimiento').value;
+    var direccion = document.getElementById('reg-direccion').value.trim();
+    var observaciones = document.getElementById('reg-observaciones').value.trim();
+    var linkOrigen = document.getElementById('reg-link-origen').value.trim();
+    var usuario = localStorage.getItem('sesion_usuario') || 'SISTEMA';
 
-    if (!fecha || !chofer || !placa) {
-      alert("Por favor complete los campos obligatorios: Fecha, Chofer y Placa.");
+    if (!empresa) {
+      alert('Seleccione la empresa emisora.');
+      return;
+    }
+    if (!cliente) {
+      alert('Ingrese el cliente / destinatario.');
+      return;
+    }
+    if (!documento) {
+      alert('Ingrese el RUC/DNI del cliente.');
+      return;
+    }
+    if (!fechaEmision) {
+      alert('Seleccione la fecha de emisión.');
+      return;
+    }
+    if (!fechaVencimiento) {
+      alert('Seleccione la fecha de vencimiento.');
       return;
     }
 
-    // Mapeo unificado de datos de empresa emisora
-    var datosEmpresas = {
-      "AGA": { ruc: "20505688903", razon: "AGRÍCOLA ANDREA S.A.C." },
-      "ARENUVA": { ruc: "20607519391", razon: "ARENUVA S.A.C." },
-      "LARAMA": { ruc: "20602842739", razon: "LARAMA BERRIES S.A.C." }
-    };
-
-    var infoEmpresa = datosEmpresas[empresa] || { ruc: "", razon: empresa };
-
-    // Recolección de productos ingresados en la tabla
     var productos = [];
-    var filas = document.querySelectorAll('#tbody-productos-guia tr');
-    
-    filas.forEach(function(fila) {
-      var codigo = fila.querySelector('.input-cod-prod') ? fila.querySelector('.input-cod-prod').value : '';
-      var descripcion = fila.querySelector('.input-desc-prod') ? fila.querySelector('.input-desc-prod').value : '';
-      var cantidad = fila.querySelector('.input-cant-prod') ? fila.querySelector('.input-cant-prod').value : 0;
-      var um = fila.querySelector('.select-um-prod') ? fila.querySelector('.select-um-prod').value : 'NIU';
+    var filas = document.querySelectorAll('#tbody-detalle-guias tr');
 
-      if (descripcion.trim() !== '' && cantidad > 0) {
-        productos.push({
-          codigo: codigo,
-          descripcion: descripcion,
-          cantidad: parseFloat(cantidad),
-          um: um
-        });
+    for (var i = 0; i < filas.length; i++) {
+      var fila = filas[i];
+      var codigoInput = fila.querySelector('.input-codigo-prod');
+      var descripcionInput = fila.querySelector('.input-desc-prod');
+      var cantidadInput = fila.querySelector('.input-cant-prod');
+      var umInput = fila.querySelector('.input-um-prod');
+
+      var codigo = codigoInput ? codigoInput.value.trim() : '';
+      var descripcion = descripcionInput ? descripcionInput.value.trim() : '';
+      var cantidad = cantidadInput ? parseFloat(cantidadInput.value) || 0 : 0;
+      var um = umInput ? umInput.value.trim() || 'KG' : 'KG';
+
+      if (!codigo && cantidad === 0) continue;
+
+      if (!codigo) {
+        alert('Hay una línea de producto sin código.');
+        return;
       }
-    });
+      if (!descripcion || descripcion === 'Proceda a buscar...' || descripcion === 'PRODUCTO NO ENCONTRADO' || descripcion === 'Error de búsqueda') {
+        alert('Verifique que todos los códigos tengan una descripción válida.');
+        return;
+      }
+      if (cantidad <= 0) {
+        alert('Todos los productos deben tener una cantidad mayor a cero.');
+        return;
+      }
+
+      productos.push({
+        codigo: codigo,
+        descripcion: descripcion,
+        cantidad: cantidad,
+        um: um
+      });
+    }
 
     if (productos.length === 0) {
-      alert("Debe agregar al menos un producto con descripción y cantidad mayor a 0.");
+      alert('Debe agregar al menos un producto.');
       return;
     }
 
-    var payload = {
-      empresaCodigo: empresa,
-      empresaRuc: infoEmpresa.ruc,
-      empresaRazon: infoEmpresa.razon,
-      correlativo: correlativo,
-      fecha: fecha,
-      chofer: chofer,
-      placa: placa,
+    var cabecera = {
+      empresa: empresa,
+      cliente: cliente,
+      documento: documento,
+      condicion: condicion || 'CONTADO',
+      autorizado: autorizado,
+      fechaEmision: fechaEmision,
+      fechaVencimiento: fechaVencimiento,
+      direccion: direccion,
       observaciones: observaciones,
-      productos: productos
+      linkOrigen: linkOrigen,
+      creador: usuario
     };
 
-    // Mostrar indicador de carga
-    mostrarCargando(true);
+    var boton = document.querySelector('#tab-guias button[onclick="procesarGuardadoGuia();"]');
+    if (boton) {
+      boton.disabled = true;
+      boton.innerText = 'GUARDANDO...';
+    }
 
-    // Guardar en Apps Script Backend
     google.script.run
       .withSuccessHandler(function(respuesta) {
-        mostrarCargando(false);
-
-        if (respuesta && respuesta.exito) {
-          alert("¡Guía guardada exitosamente con el correlativo: " + respuesta.correlativo + "!");
-          
-          // Abrir la ventana de impresión con los datos procesados
-          imprimirGuia(payload);
-          
-          // Limpiar el formulario o recargar correlativo
-          limpiarFormularioGuia();
-        } else {
-          alert("Error al guardar la guía: " + (respuesta.mensaje || "Error desconocido."));
+        if (boton) {
+          boton.disabled = false;
+          boton.innerText = 'Guardar e Imprimir Nota';
         }
+
+        if (!respuesta || !respuesta.exito) {
+          alert('Error al guardar la guía: ' + (respuesta && respuesta.mensaje ? respuesta.mensaje : 'Error desconocido.'));
+          return;
+        }
+
+        var datosImpresion = {
+          correlativo: respuesta.correlativo,
+          cabecera: {
+            empresa: respuesta.razonSocial || cabecera.empresa,
+            rucEmisor: respuesta.rucEmisor || '',
+            cliente: cabecera.cliente,
+            documento: cabecera.documento,
+            direccion: cabecera.direccion,
+            fechaEmision: formatearFechaGuia(cabecera.fechaEmision),
+            fechaVencimiento: formatearFechaGuia(cabecera.fechaVencimiento),
+            condicion: cabecera.condicion,
+            autorizado: cabecera.autorizado,
+            observaciones: cabecera.observaciones,
+            urlLogo: respuesta.urlLogo || ''
+          },
+          creador: cabecera.creador,
+          productos: productos
+        };
+
+        imprimirGuia(datosImpresion);
+        alert('¡Guía guardada exitosamente con el correlativo: ' + respuesta.correlativo + '!');
+        inicializarModuloGuias();
       })
-      .withFailureHandler(function(err) {
-        mostrarCargando(false);
-        alert("Error en el servidor: " + err.message);
+      .withFailureHandler(function(error) {
+        if (boton) {
+          boton.disabled = false;
+          boton.innerText = 'Guardar e Imprimir Nota';
+        }
+        alert('Error en el servidor: ' + error.message);
       })
-      .guardarGuiaProvisional(payload);
+      .guardarGuiaProvisional(cabecera, productos);
   }
 
-
-  /**
-   * Genera la vista previa / ventana de impresión de la guía.
-   */
   function imprimirGuia(datos) {
+    window.datosImpresionActual = datos;
+
     google.script.run
       .withSuccessHandler(function(htmlContent) {
         var ventana = window.open('', '_blank', 'width=900,height=700');
+        if (!ventana) {
+          alert('El navegador bloqueó la ventana de impresión. Permita las ventanas emergentes para este sistema.');
+          return;
+        }
+        ventana.document.open();
         ventana.document.write(htmlContent);
         ventana.document.close();
       })
-      .generarHtmlImpresionGuia(datos);
+      .withFailureHandler(function(error) {
+        alert('No se pudo generar la vista de impresión: ' + error.message);
+      })
+      .generarHtmlImpresionGuia();
   }
 
 
@@ -660,8 +922,9 @@ if (idTab === 'tab-ventas') {
 
     datosCruceGlobal = [];
   }
-  // ============================================================
-// MÓDULO VENTAS
+
+
+  // MÓDULO VENTAS
 // ============================================================
 
 var productosVentaDisponibles = [];
@@ -962,50 +1225,47 @@ function cargarProductosDesdeLinkVenta() {
 
 
 // ============================================================
-// CÓDIGO Y VARIEDAD DESDE EL LINK CARGADO
-// ============================================================
-function escucharCambioCodigoVenta(codigoInput) {
-  var fila=codigoInput.closest('tr');
-  if(!fila)return;
-  var inputs=fila.querySelectorAll('input');
-  if(inputs.length<3)return;
-  var variedadInput=inputs[1], codigo=codigoInput.value.trim();
-  if(!codigo){variedadInput.value='';variedadInput.style.color='#334155';return;}
-  var encontrado=productosVentaDisponibles.find(function(p){return String(p.codigo||'').trim()===codigo;});
-  if(encontrado){
-    variedadInput.value=encontrado.descripcion||'';
-    variedadInput.style.color='#16a34a';
-    if(!inputs[2].value&&Number(encontrado.cantidad)>0){inputs[2].value=Number(encontrado.cantidad).toFixed(3);calcularTotalVenta();}
-    return;
-  }
-  variedadInput.value='🔍 Buscando...';variedadInput.style.color='#2563eb';
-  google.script.run.withSuccessHandler(function(resultado){
-    if(resultado&&resultado.exito){variedadInput.value=resultado.descripcion||'';variedadInput.style.color='#16a34a';}
-    else{variedadInput.value='Código no encontrado';variedadInput.style.color='#dc2626';}
-  }).withFailureHandler(function(error){variedadInput.value='Error de búsqueda';variedadInput.style.color='#dc2626';console.error(error);}).buscarProductoPorCodigo(codigo);
-}
-
-// ============================================================
-// CLIENTE POR RUC
-// ============================================================
-function buscarClientePorRucVenta(rucInput) {
-  var clienteInput=document.getElementById('venta-cliente');
-  if(!clienteInput)return;
-  var ruc=rucInput?rucInput.value.trim():'';
-  if(!ruc){clienteInput.value='';return;}
-  clienteInput.value='🔍 Buscando...';clienteInput.style.color='#2563eb';
-  google.script.run.withSuccessHandler(function(resultado){
-    if(resultado&&resultado.exito&&resultado.cliente){
-      clienteInput.value=resultado.cliente;clienteInput.style.color='#16a34a';
-    }else{
-      clienteInput.value='';clienteInput.style.color='#334155';clienteInput.focus();
-    }
-  }).withFailureHandler(function(error){clienteInput.value='';clienteInput.style.color='#dc2626';console.error('Error buscando cliente por RUC:',error);}).buscarClientePorRuc(ruc);
-}
-
-// ============================================================
 // CALCULAR TOTAL KG
 // ============================================================
+
+
+// ============================================================
+// CLIENTE POR RUC - MÓDULO VENTAS
+// Reutiliza el backend buscarClientePorRuc() compartido.
+// ============================================================
+function buscarClientePorRucVenta(rucInput) {
+  var clienteInput = document.getElementById('venta-cliente');
+  if (!clienteInput) return;
+
+  var ruc = rucInput ? rucInput.value.trim() : '';
+
+  if (!ruc) {
+    clienteInput.value = '';
+    clienteInput.style.color = '#334155';
+    return;
+  }
+
+  clienteInput.value = '🔍 Buscando...';
+  clienteInput.style.color = '#2563eb';
+
+  google.script.run
+    .withSuccessHandler(function(resultado) {
+      if (resultado && resultado.exito && resultado.cliente) {
+        clienteInput.value = resultado.cliente;
+        clienteInput.style.color = '#16a34a';
+      } else {
+        clienteInput.value = '';
+        clienteInput.style.color = '#334155';
+        clienteInput.focus();
+      }
+    })
+    .withFailureHandler(function(error) {
+      clienteInput.value = '';
+      clienteInput.style.color = '#dc2626';
+      console.error('Error buscando cliente por RUC:', error);
+    })
+    .buscarClientePorRuc(ruc);
+}
 
 function calcularTotalVenta() {
 

@@ -265,10 +265,10 @@
         <button class="menu-item" onclick="cambiarPestana(event, 'tab-guias')">
           <span class="icon">🚚</span> Guías Provisionales
         </button>
-         <button class="menu-item" onclick="cambiarPestana(event, 'tab-ventas')">
-  <span class="icon">💰</span> Ventas
-</button>
-      </nav>
+              <button class="menu-item" onclick="cambiarPestana(event, 'tab-ventas')">
+          <span class="icon">💰</span> Ventas
+        </button>
+</nav>
       
       <div class="sidebar-footer">
         <button class="btn-logout" onclick="cerrarSesion()">Cerrar Sesión</button>
@@ -579,7 +579,7 @@
               </div>
               <div>
                 <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Documento (RUC/DNI)</label>
-                <input type="text" id="reg-documento" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+                <input type="text" id="reg-documento" onblur="buscarClientePorRucGuia(this)" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
               </div>
               <div>
                 <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Condición de Pago</label>
@@ -604,6 +604,14 @@
               <div style="grid-column: span 2;">
                 <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Observaciones</label>
                 <input type="text" id="reg-observaciones" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="display:block; font-weight:bold; margin-bottom:6px; color:#475569; font-size:12px;">Link de origen</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <input type="url" id="reg-link-origen" placeholder="Pegue aquí el link del reporte..." style="flex:1; width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px;">
+                  <button type="button" id="btn-cargar-link-guia" onclick="cargarProductosDesdeLinkGuia();" style="padding:10px 18px; background:#2563eb; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:12px; white-space:nowrap;">🔄 CARGAR</button>
+                </div>
+                <div id="reg-link-mensaje" style="margin-top:6px; font-size:11px; min-height:16px;"></div>
               </div>
             </div>
           </div>
@@ -634,6 +642,7 @@
                 </tr>
               </tfoot>
             </table>
+            <datalist id="lista-codigos-guia"></datalist>
           </div>
 
           <div style="display: flex; justify-content: flex-end; gap: 15px; margin-bottom: 40px;">
@@ -641,7 +650,7 @@
             <button type="button" onclick="procesarGuardadoGuia();" style="padding: 12px 30px; background: #22c55e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Guardar e Imprimir Nota</button>
           </div>
 
-             </div>
+        </div>
         </div>
 
         <?!= HtmlService.createHtmlOutputFromFile('Ventas').getContent(); ?>

@@ -494,30 +494,34 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
 // SERVICIOS PARA MÓDULO DE GUÍAS PROVISIONALES
 // ==========================================
 
+var ID_SS_MAESTRO_GUIAS = "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
+
 /**
- * Busca un producto en la pestaña 'BD-PRODUCTOS' mediante su código.
- * Asume Columna A = Código, Columna B = Descripción/Variedad.
+ * Busca un producto en BD-PRODUCTOS mediante su código.
+ * Columna A = Código / Columna B = Descripción.
  */
 function buscarProductoPorCodigo(codigo) {
   try {
-    var sheetId = "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
-    var ss = SpreadsheetApp.openById(sheetId);
+    var ss = SpreadsheetApp.openById(ID_SS_MAESTRO_GUIAS);
     var sheet = ss.getSheetByName("BD-PRODUCTOS");
-    
+
     if (!sheet) {
       return { exito: false, descripcion: "Error: No existe BD-PRODUCTOS" };
     }
-    
+
     var datos = sheet.getDataRange().getValues();
-    var codigoBuscado = codigo.toString().trim().toLowerCase();
-    
+    var codigoBuscado = String(codigo || "").trim().toLowerCase();
+
     for (var i = 1; i < datos.length; i++) {
-      var codCelda = datos[i][0].toString().trim().toLowerCase();
+      var codCelda = String(datos[i][0] || "").trim().toLowerCase();
       if (codCelda === codigoBuscado) {
-        return { exito: true, descripcion: datos[i][1].toString().trim().toUpperCase() };
+        return {
+          exito: true,
+          descripcion: String(datos[i][1] || "").trim().toUpperCase()
+        };
       }
     }
-    
+
     return { exito: false, descripcion: "PRODUCTO NO ENCONTRADO" };
   } catch (e) {
     return { exito: false, descripcion: "Error: " + e.toString() };
@@ -525,143 +529,319 @@ function buscarProductoPorCodigo(codigo) {
 }
 
 /**
- * Mapeo oficial centralizado de Empresas emisoras, Razones Sociales y RUCs
+ * Directorio oficial de empresas emisoras.
  */
 function obtenerDatosEmpresaEmisora(codigoEmpresa) {
   var directorio = {
-    "AGA": { razonSocial: "AGRÍCOLA ANDREA S.A.C.", ruc: "20522108118" },
-    "LARAMA": { razonSocial: "AGROPECUARIA LARAMA S.A.C.", ruc: "20601344444" }, 
-    "ARENUVA": { razonSocial: "AGRÍCOLA ARENUVA S.A.C.", ruc: "20602511111" }   
+    "AGA": {
+      razonSocial: "AGRÍCOLA ANDREA S.A.C.",
+      ruc: "20505688903"
+    },
+    "LARAMA": {
+      razonSocial: "LARAMA BERRIES S.A.C.",
+      ruc: "20602842739"
+    },
+    "ARENUVA": {
+      razonSocial: "ARENUVA S.A.C.",
+      ruc: "20607519391"
+    }
   };
-  
-  return directorio[codigoEmpresa.toUpperCase()] || { razonSocial: "", ruc: "" };
+
+  var codigo = String(codigoEmpresa || "").trim().toUpperCase();
+
+  return directorio[codigo] || {
+    razonSocial: "",
+    ruc: ""
+  };
 }
 
 /**
- * Guarda la cabecera y el detalle de la guía en 'HISTORIAL_GUIAS'
- * Genera de forma segura el siguiente correlativo incremental.
+ * Guarda la cabecera y detalle de la guía en HISTORIAL_GUIAS.
+ * El correlativo se genera por empresa y se protege con LockService.
  */
 function guardarGuiaProvisional(datosCabecera, listaProductos) {
+  var lock = LockService.getScriptLock();
+
   try {
-    var sheetId = "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
-    var ss = SpreadsheetApp.openById(sheetId);
+    lock.waitLock(30000);
+
+    var ss = SpreadsheetApp.openById(ID_SS_MAESTRO_GUIAS);
     var sheet = ss.getSheetByName("HISTORIAL_GUIAS");
-    
+
     if (!sheet) {
       return { exito: false, mensaje: "Error: No se encontró la pestaña HISTORIAL_GUIAS" };
     }
-    
-    // Generar Correlativo Automático
-    var ultimaFila = sheet.getLastRow();
-    var sgteNumero = 1;
 
-    if (ultimaFila > 1) {
-      var ultimoCorrelativo = sheet.getRange(ultimaFila, 1).getValue().toString();
-      var numeroExtraido = parseInt(ultimoCorrelativo.replace("DESC-CAL-", ""), 10);
-      if (!isNaN(numeroExtraido)) {
-        sgteNumero = numeroExtraido + 1;
-      }
+    if (!datosCabecera || !listaProductos || !listaProductos.length) {
+      return { exito: false, mensaje: "No se recibieron los datos completos de la guía." };
     }
 
-    var nuevoCorrelativo = "DESC-CAL-" + String(sgteNumero).padStart(3, '0');
-    
-    // Preparar el lote de filas para setValues()
+    var empresa = String(datosCabecera.empresa || "").trim().toUpperCase();
+    var empresaData = obtenerDatosEmpresaEmisora(empresa);
+
+    if (!empresaData.razonSocial) {
+      return { exito: false, mensaje: "La empresa emisora seleccionada no es válida." };
+    }
+
+    var siguiente = obtenerSiguienteCorrelativoInterno_(sheet, empresa);
+    var nuevoCorrelativo = siguiente.correlativo;
+
     var filasParaInsertar = [];
-    
     for (var i = 0; i < listaProductos.length; i++) {
-      var prod = listaProductos[i];
-      
+      var prod = listaProductos[i] || {};
       filasParaInsertar.push([
         nuevoCorrelativo,
-        datosCabecera.empresa,
-        datosCabecera.rucEmisor,
-        datosCabecera.cliente,
-        datosCabecera.documento,
-        datosCabecera.direccion,
-        datosCabecera.fechaEmision,
-        datosCabecera.fechaVencimiento,
-        datosCabecera.condicion,
-        datosCabecera.autorizado,
-        prod.codigo,
-        prod.descripcion,
+        empresa,
+        empresaData.ruc,
+        String(datosCabecera.cliente || "").trim(),
+        String(datosCabecera.documento || "").trim(),
+        String(datosCabecera.direccion || "").trim(),
+        String(datosCabecera.fechaEmision || "").trim(),
+        String(datosCabecera.fechaVencimiento || "").trim(),
+        String(datosCabecera.condicion || "CONTADO").trim(),
+        String(datosCabecera.autorizado || "").trim(),
+        String(prod.codigo || "").trim(),
+        String(prod.descripcion || "").trim(),
         parseFloat(prod.cantidad) || 0
       ]);
     }
-    
-    if (filasParaInsertar.length > 0) {
-      sheet.getRange(sheet.getLastRow() + 1, 1, filasParaInsertar.length, filasParaInsertar[0].length).setValues(filasParaInsertar);
-    }
-    
-    return { exito: true, correlativo: nuevoCorrelativo };
-    
+
+    var primeraFila = sheet.getLastRow() + 1;
+    sheet.getRange(primeraFila, 1, filasParaInsertar.length, filasParaInsertar[0].length).setValues(filasParaInsertar);
+
+    var urlLogo = obtenerUrlLogo(empresa);
+
+    return {
+      exito: true,
+      correlativo: nuevoCorrelativo,
+      empresa: empresa,
+      razonSocial: empresaData.razonSocial,
+      rucEmisor: empresaData.ruc,
+      urlLogo: urlLogo
+    };
+
   } catch (e) {
-    return { exito: false, mensaje: "Error crítico: " + e.toString() };
+    return { exito: false, mensaje: "Error crítico al guardar la guía: " + e.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch (ignore) {}
   }
 }
 
-function obtenerFormatoImpresion() {
-  return HtmlService.createHtmlOutputFromFile('FormatoImpresion').getContent();
-}
-
 /**
- * Obtiene el siguiente correlativo para la empresa elegida.
- * Revisa el correlativo máximo guardado en "HISTORIAL_GUIAS".
+ * Calcula el siguiente correlativo dentro del mismo lock de guardado.
+ * Columna A de HISTORIAL_GUIAS = correlativo.
  */
-function obtenerSiguienteCorrelativo(codigoEmpresa) {
-  try {
-    var ss = SpreadsheetApp.openById(ID_SS_DESTINO);
-    var sheet = ss.getSheetByName("HISTORIAL_GUIAS");
-    
-    var prefijo = "T001-";
-    if (codigoEmpresa === "AGA") prefijo = "T001-";
-    else if (codigoEmpresa === "ARENUVA") prefijo = "T002-";
-    else if (codigoEmpresa === "LARAMA") prefijo = "T003-";
-    
-    if (!sheet) return prefijo + "00000001";
-    
-    var data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return prefijo + "00000001";
-    
-    var maxNumero = 0;
-    for (var i = 1; i < data.length; i++) {
-      var corr = String(data[i][1] || ""); // Columna B: Correlativo
-      if (corr.startsWith(prefijo)) {
-        var numStr = corr.replace(prefijo, "");
-        var num = parseInt(numStr, 10);
+function obtenerSiguienteCorrelativoInterno_(sheet, codigoEmpresa) {
+  var prefijos = {
+    "AGA": "T001-",
+    "ARENUVA": "T002-",
+    "LARAMA": "T003-"
+  };
+
+  var empresa = String(codigoEmpresa || "").trim().toUpperCase();
+  var prefijo = prefijos[empresa] || "T001-";
+  var maxNumero = 0;
+  var ultimaFila = sheet.getLastRow();
+
+  if (ultimaFila > 1) {
+    var correlativos = sheet.getRange(2, 1, ultimaFila - 1, 1).getDisplayValues();
+
+    for (var i = 0; i < correlativos.length; i++) {
+      var corr = String(correlativos[i][0] || "").trim().toUpperCase();
+      if (corr.indexOf(prefijo) === 0) {
+        var num = parseInt(corr.substring(prefijo.length), 10);
         if (!isNaN(num) && num > maxNumero) {
           maxNumero = num;
         }
       }
     }
-    
-    var siguiente = maxNumero + 1;
-    var numFormateado = ("00000000" + siguiente).slice(-8);
-    return prefijo + numFormateado;
-    
+  }
+
+  var siguiente = maxNumero + 1;
+  return {
+    prefijo: prefijo,
+    numero: siguiente,
+    correlativo: prefijo + String(siguiente).padStart(8, '0')
+  };
+}
+
+/**
+ * Obtiene el siguiente correlativo para mostrarlo en pantalla.
+ * No reserva el número; el número definitivo se genera al guardar.
+ */
+function obtenerSiguienteCorrelativo(codigoEmpresa) {
+  try {
+    var ss = SpreadsheetApp.openById(ID_SS_MAESTRO_GUIAS);
+    var sheet = ss.getSheetByName("HISTORIAL_GUIAS");
+    var prefijos = {
+      "AGA": "T001-",
+      "ARENUVA": "T002-",
+      "LARAMA": "T003-"
+    };
+    var empresa = String(codigoEmpresa || "").trim().toUpperCase();
+    var prefijo = prefijos[empresa] || "T001-";
+
+    if (!sheet) return prefijo + "00000001";
+
+    var datos = obtenerSiguienteCorrelativoInterno_(sheet, empresa);
+    return datos.correlativo;
   } catch (e) {
     Logger.log("Error al obtener correlativo: " + e.toString());
     return "T001-00000001";
   }
-} // <-- Llave de cierre corregida
+}
 
 /**
- * Obtiene la URL del logo de la empresa desde la pestaña CONFIGURACION.
+ * Obtiene la URL del logo desde CONFIGURACION.
+ * CONFIGURACION: A = empresa, C = URL del logo.
  */
 function obtenerUrlLogo(codigoEmpresa) {
+  var empresa = String(codigoEmpresa || '').trim().toUpperCase();
+
+  var logos = {
+    'AGA': LOGO_AGA,
+    'LARAMA': LOGO_LARAMA,
+    'ARENUVA': LOGO_ARENUVA
+  };
+
+  return logos[empresa] || '';
+}
+
+/**
+ * Devuelve el HTML de impresión de la guía.
+ */
+function generarHtmlImpresionGuia() {
+  return HtmlService.createHtmlOutputFromFile('FormatoImpresion').getContent();
+}
+
+/**
+ * Lee el link de origen utilizado en Guías Provisionales.
+ * Estructura: B=EMPRESA, C=SEDE, D=CÓDIGO, E=DESCRIPCIÓN, F=auxiliar, G=CANT/KG, H=UM.
+ */
+function obtenerProductosDesdeLinkGuia(empresaSeleccionada, urlOrigen) {
   try {
-    var ss = SpreadsheetApp.openById(ID_SS_DESTINO);
-    var sheet = ss.getSheetByName("CONFIGURACION");
-    if (!sheet) return "";
-    
-    var data = sheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (String(data[i][0]).trim().toUpperCase() === String(codigoEmpresa).trim().toUpperCase()) {
-        return transformarUrlDriveDirecta(String(data[i][2])); 
+    var empresa = String(empresaSeleccionada || '').trim().toUpperCase();
+    var url = String(urlOrigen || '').trim();
+
+    if (!empresa) return { exito: false, mensaje: 'Debe seleccionar una empresa.' };
+    if (!url) return { exito: false, mensaje: 'Debe ingresar un link de origen.' };
+
+    var match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (!match || !match[1]) {
+      return { exito: false, mensaje: 'El link no corresponde a un Google Sheets válido.' };
+    }
+
+    var ssOrigen = SpreadsheetApp.openById(match[1]);
+    var gidMatch = url.match(/[?#&]gid=(\d+)/);
+    var sheet = gidMatch ? ssOrigen.getSheetById(Number(gidMatch[1])) : null;
+    if (!sheet) sheet = ssOrigen.getSheetByName('DESCARTE');
+    if (!sheet) sheet = ssOrigen.getSheets()[0];
+    if (!sheet) return { exito: false, mensaje: 'No se pudo identificar la pestaña del archivo.' };
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 1) return { exito: false, mensaje: 'La pestaña indicada no contiene datos.' };
+
+    var datos = sheet.getRange(1, 2, lastRow, 7).getDisplayValues();
+    var normalizar = function(v) {
+      return String(v == null ? '' : v).trim().toUpperCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    };
+    var aliases = {
+      AGA: ['AGA', 'AGRICOLA ANDREA', 'AGRICOLA ANDREA SAC'],
+      LARAMA: ['LARAMA', 'AGROPECUARIA LARAMA', 'AGROPECUARIA LARAMA SAC'],
+      ARENUVA: ['ARENUVA', 'AGRICOLA ARENUVA', 'AGRICOLA ARENUVA SAC']
+    }[empresa] || [empresa];
+
+    var coincideEmpresa = function(valor) {
+      var valorNormalizado = normalizar(valor);
+      return aliases.some(function(alias) {
+        var aliasNormalizado = normalizar(alias);
+        return valorNormalizado === aliasNormalizado || valorNormalizado.indexOf(aliasNormalizado) >= 0;
+      });
+    };
+
+    var toNumber = function(valor) {
+      var s = String(valor == null ? '' : valor).trim().replace(/\s/g, '');
+      if (!s) return 0;
+      if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) {
+        s = s.replace(/,/g, '');
+      } else if (s.indexOf(',') >= 0) {
+        s = s.replace(/,/g, '.');
+      }
+      var n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    };
+
+    var productos = [];
+
+    for (var i = 0; i < datos.length; i++) {
+      var fila = datos[i];
+      var empresaFila = fila[0];
+      var codigo = String(fila[2] || '').trim();
+      var descripcion = String(fila[3] || '').trim();
+      var cantidad = toNumber(fila[5]);
+      var um = String(fila[6] || '').trim();
+
+      if (!coincideEmpresa(empresaFila) || !codigo || !descripcion) continue;
+      if (!/^\d+$/.test(codigo.replace(/\s/g, ''))) continue;
+      if (cantidad <= 0) continue;
+
+      productos.push({
+        codigo: codigo,
+        descripcion: descripcion.toUpperCase(),
+        cantidad: cantidad,
+        um: um || 'KG'
+      });
+    }
+
+    if (!productos.length) {
+      return {
+        exito: false,
+        mensaje: 'No se encontraron productos válidos para ' + empresa + ' en la pestaña ' + sheet.getName() + '.'
+      };
+    }
+
+    return {
+      exito: true,
+      empresa: empresa,
+      productos: productos,
+      cantidad: productos.length,
+      pestaña: sheet.getName(),
+      gid: String(sheet.getSheetId())
+    };
+
+  } catch (error) {
+    return { exito: false, mensaje: 'No se pudo leer el link de origen: ' + error.toString() };
+  }
+}
+
+/**
+ * Busca un cliente por RUC/DNI en el historial de Ventas.
+ */
+function buscarClientePorRuc(ruc) {
+  try {
+    var ss = SpreadsheetApp.openById(ID_SS_MAESTRO_GUIAS);
+    var sheet = ss.getSheetByName('VENTAS');
+    if (!sheet) return { exito: false, cliente: '' };
+
+    var buscado = String(ruc || '').trim().toUpperCase().replace(/[\s\-.]/g, '');
+    if (!buscado) return { exito: false, cliente: '' };
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return { exito: false, cliente: '' };
+
+    var datos = sheet.getRange(2, 3, lastRow - 1, 2).getDisplayValues();
+    for (var i = datos.length - 1; i >= 0; i--) {
+      var rucFila = String(datos[i][0] || '').trim().toUpperCase().replace(/[\s\-.]/g, '');
+      var cliente = String(datos[i][1] || '').trim();
+      if (rucFila === buscado && cliente) {
+        return { exito: true, cliente: cliente };
       }
     }
-    return "";
-  } catch (e) {
-    return "";
+
+    return { exito: false, cliente: '' };
+  } catch (error) {
+    return { exito: false, cliente: '', mensaje: error.toString() };
   }
 }
 
@@ -670,20 +850,178 @@ function obtenerUrlLogo(codigoEmpresa) {
  */
 function transformarUrlDriveDirecta(url) {
   if (!url) return "";
-  var match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  var match = String(url).match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (match && match[1]) {
     return "https://lh3.googleusercontent.com/d/" + match[1];
   }
   return url;
 }
+
 // ============================================================
 // SERVICIOS PARA MÓDULO DE VENTAS
+// Se agregan únicamente las funciones que necesita Ventas.
+// No modifica las funciones existentes de Guías, Reportes o Cruce.
 // ============================================================
 
+function extraerIdSpreadsheetDesdeUrl_(url) {
+  var texto = String(url || '').trim();
+  var match = texto.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return match && match[1] ? match[1] : '';
+}
+
 /**
- * Guarda una venta en la pestaña VENTAS.
+ * Lee el link de origen del módulo Ventas.
+ * Estructura fija del reporte:
+ * B = EMPRESA
+ * C = SEDE
+ * D = COD
+ * E = DESCRIPCION
+ * F = auxiliar
+ * G = CANT / KG
+ * H = UM
  *
- * Estructura:
+ * La empresa seleccionada filtra las filas y se devuelve también
+ * el valor de G para que Ventas lo coloque automáticamente.
+ */
+/**
+ * Compatibilidad con versiones anteriores de Guías que solicitaban
+ * directamente el HTML del formato de impresión.
+ */
+function obtenerFormatoImpresion() {
+  return HtmlService.createHtmlOutputFromFile('FormatoImpresion').getContent();
+}
+
+function obtenerProductosDesdeLinkVenta(empresaSeleccionada, urlOrigen) {
+  try {
+    var empresa = String(empresaSeleccionada || '').trim().toUpperCase();
+    var url = String(urlOrigen || '').trim();
+
+    if (!empresa) {
+      return { exito: false, mensaje: 'Debe seleccionar una empresa.' };
+    }
+
+    if (!url) {
+      return { exito: false, mensaje: 'Debe ingresar un link de origen.' };
+    }
+
+    var spreadsheetId = extraerIdSpreadsheetDesdeUrl_(url);
+    if (!spreadsheetId) {
+      return { exito: false, mensaje: 'El link no corresponde a un Google Sheets válido.' };
+    }
+
+    var ssOrigen = SpreadsheetApp.openById(spreadsheetId);
+    var gidMatch = url.match(/[?#&]gid=(\d+)/);
+    var sheet = gidMatch ? ssOrigen.getSheetById(Number(gidMatch[1])) : null;
+
+    if (!sheet) sheet = ssOrigen.getSheetByName('DESCARTE');
+    if (!sheet) sheet = ssOrigen.getSheets()[0];
+    if (!sheet) {
+      return { exito: false, mensaje: 'No se pudo identificar la pestaña del archivo.' };
+    }
+
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 1) {
+      return { exito: false, mensaje: 'La pestaña indicada no contiene datos.' };
+    }
+
+    // B:H = 7 columnas. Así respetamos exactamente la estructura
+    // que ya utiliza el reporte de origen.
+    var datos = sheet.getRange(1, 2, lastRow, 7).getDisplayValues();
+
+    var normalizar = function(valor) {
+      return String(valor == null ? '' : valor).trim().toUpperCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    };
+
+    var aliases = {
+      AGA: ['AGA', 'AGRICOLA ANDREA', 'AGRICOLA ANDREA SAC'],
+      LARAMA: ['LARAMA', 'AGROPECUARIA LARAMA', 'AGROPECUARIA LARAMA SAC'],
+      ARENUVA: ['ARENUVA', 'AGRICOLA ARENUVA', 'AGRICOLA ARENUVA SAC']
+    }[empresa] || [empresa];
+
+    var coincideEmpresa = function(valor) {
+      var valorNormalizado = normalizar(valor);
+      return aliases.some(function(alias) {
+        var aliasNormalizado = normalizar(alias);
+        return valorNormalizado === aliasNormalizado ||
+               valorNormalizado.indexOf(aliasNormalizado) >= 0;
+      });
+    };
+
+    var toNumber = function(valor) {
+      var s = String(valor == null ? '' : valor).trim().replace(/\s/g, '');
+      if (!s) return 0;
+
+      // El reporte mostrado utiliza 4,049.47, por lo que una coma
+      // junto a punto representa separador de miles.
+      if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) {
+        s = s.replace(/,/g, '');
+      } else if (s.indexOf(',') >= 0) {
+        s = s.replace(/,/g, '.');
+      }
+
+      var n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    };
+
+    var productos = [];
+    var vistos = {};
+
+    for (var i = 0; i < datos.length; i++) {
+      var fila = datos[i];
+
+      var empresaFila = fila[0]; // B
+      var codigo = String(fila[2] || '').trim(); // D
+      var descripcion = String(fila[3] || '').trim(); // E
+      var cantidad = toNumber(fila[5]); // G
+      var um = String(fila[6] || '').trim(); // H
+
+      if (!coincideEmpresa(empresaFila)) continue;
+      if (!codigo || !descripcion) continue;
+      if (!/^\d+$/.test(codigo.replace(/\s/g, ''))) continue;
+      if (cantidad <= 0) continue;
+
+      // No repetimos el mismo código si aparece más de una vez.
+      // Se conserva la primera ocurrencia tal como aparece en el reporte.
+      var clave = codigo.toUpperCase();
+      if (vistos[clave]) continue;
+      vistos[clave] = true;
+
+      productos.push({
+        codigo: codigo,
+        descripcion: descripcion.toUpperCase(),
+        cantidad: cantidad,
+        um: um || 'KG'
+      });
+    }
+
+    if (!productos.length) {
+      return {
+        exito: false,
+        mensaje: 'No se encontraron códigos para la empresa ' + empresa +
+                 ' en la pestaña indicada por el link.'
+      };
+    }
+
+    return {
+      exito: true,
+      empresa: empresa,
+      productos: productos,
+      cantidad: productos.length,
+      pestaña: sheet.getName(),
+      gid: String(sheet.getSheetId())
+    };
+
+  } catch (error) {
+    return {
+      exito: false,
+      mensaje: 'No se pudo leer el link de origen: ' + error.toString()
+    };
+  }
+}
+
+/**
+ * Guarda la venta en la pestaña VENTAS.
  * A = CORRELATIVO
  * B = FECHA DE DESPACHO
  * C = RUC
@@ -691,596 +1029,172 @@ function transformarUrlDriveDirecta(url) {
  * E = CODIGO
  * F = VARIEDAD
  * G = KG TOTAL
- *
- * El correlativo es ingresado manualmente.
+ * H = EMPRESA
+ * I = LINK ORIGEN
  */
 function guardarVenta(datosVenta) {
-
   try {
-
-    var sheetId = "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
-
-    var ss = SpreadsheetApp.openById(sheetId);
-
-    var sheet = ss.getSheetByName("VENTAS");
-
+    var ss = SpreadsheetApp.openById(ID_SS_MAESTRO_GUIAS);
+    var sheet = ss.getSheetByName('VENTAS');
 
     if (!sheet) {
-
-      return {
-        exito: false,
-        mensaje: "No se encontró la pestaña VENTAS."
-      };
-
+      return { exito: false, mensaje: 'No se encontró la pestaña VENTAS.' };
     }
-
 
     if (!datosVenta) {
-
-      return {
-        exito: false,
-        mensaje: "No se recibieron los datos de la venta."
-      };
-
+      return { exito: false, mensaje: 'No se recibieron los datos de la venta.' };
     }
 
+    var correlativo = String(datosVenta.correlativo || '').trim();
+    var fechaDespacho = String(datosVenta.fechaDespacho || '').trim();
+    var empresa = String(datosVenta.empresa || '').trim().toUpperCase();
+    var linkOrigen = String(datosVenta.linkOrigen || '').trim();
+    var ruc = String(datosVenta.ruc || '').trim();
+    var cliente = String(datosVenta.cliente || '').trim();
+    var detalle = datosVenta.detalle || [];
 
-    var correlativo =
-      String(datosVenta.correlativo || "").trim();
+    if (!correlativo) return { exito: false, mensaje: 'El correlativo es obligatorio.' };
+    if (!fechaDespacho) return { exito: false, mensaje: 'La fecha de despacho es obligatoria.' };
+    if (!empresa) return { exito: false, mensaje: 'La empresa es obligatoria.' };
+    if (!linkOrigen) return { exito: false, mensaje: 'El link de origen es obligatorio.' };
+    if (!ruc) return { exito: false, mensaje: 'El RUC es obligatorio.' };
+    if (!cliente) return { exito: false, mensaje: 'El cliente es obligatorio.' };
+    if (!detalle.length) return { exito: false, mensaje: 'La venta debe tener al menos un producto.' };
 
-    var fechaDespacho =
-      String(datosVenta.fechaDespacho || "").trim();
-
-    var ruc =
-      String(datosVenta.ruc || "").trim();
-
-    var cliente =
-      String(datosVenta.cliente || "").trim();
-
-    var detalle =
-      datosVenta.detalle || [];
-
-    var empresa = String(datosVenta.empresa || "").trim();
-    var linkOrigen = String(datosVenta.linkOrigen || "").trim();
-
-
-    if (!correlativo) {
-
-      return {
-        exito: false,
-        mensaje: "El correlativo es obligatorio."
-      };
-
-    }
-
-
-    if (!fechaDespacho) {
-
-      return {
-        exito: false,
-        mensaje: "La fecha de despacho es obligatoria."
-      };
-
-    }
-
-
-    if (!empresa) { return { exito: false, mensaje: "La empresa es obligatoria." }; }
-    if (!linkOrigen) { return { exito: false, mensaje: "El link de origen es obligatorio." }; }
-
-    if (!ruc) {
-
-      return {
-        exito: false,
-        mensaje: "El RUC es obligatorio."
-      };
-
-    }
-
-
-    if (!cliente) {
-
-      return {
-        exito: false,
-        mensaje: "El cliente es obligatorio."
-      };
-
-    }
-
-
-    if (!detalle.length) {
-
-      return {
-        exito: false,
-        mensaje: "La venta debe tener al menos un producto."
-      };
-
-    }
-
-
-    // ========================================================
-    // VALIDAR QUE EL CORRELATIVO NO EXISTA
-    // ========================================================
-
-    var ultimaFila =
-      sheet.getLastRow();
-
+    var ultimaFila = sheet.getLastRow();
     if (ultimaFila > 1) {
+      var correlativosExistentes = sheet.getRange(2, 1, ultimaFila - 1, 1).getValues();
+      var buscado = correlativo.toUpperCase();
 
-      var correlativosExistentes =
-        sheet
-          .getRange(
-            2,
-            1,
-            ultimaFila - 1,
-            1
-          )
-          .getValues();
-
-
-      var correlativoBuscado =
-        correlativo.toUpperCase();
-
-
-      for (
-        var i = 0;
-        i < correlativosExistentes.length;
-        i++
-      ) {
-
-        var correlativoExistente =
-          String(
-            correlativosExistentes[i][0] || ""
-          )
-          .trim()
-          .toUpperCase();
-
-
-        if (
-          correlativoExistente ===
-          correlativoBuscado
-        ) {
-
+      for (var i = 0; i < correlativosExistentes.length; i++) {
+        var existente = String(correlativosExistentes[i][0] || '').trim().toUpperCase();
+        if (existente === buscado) {
           return {
             exito: false,
-            mensaje:
-              "El correlativo " +
-              correlativo +
-              " ya existe en VENTAS."
+            mensaje: 'El correlativo ' + correlativo + ' ya existe en VENTAS.'
           };
-
         }
-
       }
-
     }
 
-
-    // ========================================================
-    // CONVERTIR FECHA
-    // ========================================================
-
-    var partesFecha =
-      fechaDespacho.split("-");
-
+    var partesFecha = fechaDespacho.split('-');
     var fechaParaGuardar;
-
     if (partesFecha.length === 3) {
-
       fechaParaGuardar = new Date(
         parseInt(partesFecha[0], 10),
         parseInt(partesFecha[1], 10) - 1,
         parseInt(partesFecha[2], 10)
       );
-
     } else {
-
       fechaParaGuardar = fechaDespacho;
-
     }
-
-
-    // ========================================================
-    // PREPARAR FILAS
-    // ========================================================
 
     var filasParaGuardar = [];
 
+    for (var j = 0; j < detalle.length; j++) {
+      var producto = detalle[j] || {};
+      var codigo = String(producto.codigo || '').trim();
+      var variedad = String(producto.variedad || '').trim();
+      var kg = parseFloat(producto.kgTotal) || 0;
 
-    for (
-      var j = 0;
-      j < detalle.length;
-      j++
-    ) {
-
-      var producto =
-        detalle[j] || {};
-
-
-      var codigo =
-        String(producto.codigo || "").trim();
-
-      var variedad =
-        String(producto.variedad || "").trim();
-
-      var kg =
-        parseFloat(producto.kgTotal) || 0;
-
-
-      if (!codigo) {
-
-        return {
-          exito: false,
-          mensaje:
-            "Existe una línea sin código de producto."
-        };
-
-      }
-
-
-      if (!variedad) {
-
-        return {
-          exito: false,
-          mensaje:
-            "Existe una línea sin variedad."
-        };
-
-      }
-
-
-      if (kg <= 0) {
-
-        return {
-          exito: false,
-          mensaje:
-            "Todos los productos deben tener KG mayor a cero."
-        };
-
-      }
-
+      if (!codigo) return { exito: false, mensaje: 'Existe una línea sin código de producto.' };
+      if (!variedad) return { exito: false, mensaje: 'Existe una línea sin variedad.' };
+      if (kg <= 0) return { exito: false, mensaje: 'Todos los productos deben tener KG mayor a cero.' };
 
       filasParaGuardar.push([
-
         correlativo,
-
         fechaParaGuardar,
-
         ruc,
-
         cliente,
-
         codigo,
-
         variedad,
-
         kg,
-
         empresa,
-
         linkOrigen
-
       ]);
-
     }
 
+    if (!sheet.getRange(1, 8).getValue()) sheet.getRange(1, 8).setValue('EMPRESA');
+    if (!sheet.getRange(1, 9).getValue()) sheet.getRange(1, 9).setValue('LINK ORIGEN');
 
-    // ========================================================
-    // GUARDAR TODO EN UNA SOLA OPERACIÓN
-    // ========================================================
-
-    var filaInicial =
-      sheet.getLastRow() + 1;
-
-
-    sheet
-      .getRange(
-        filaInicial,
-        1,
-        filasParaGuardar.length,
-        9
-      )
-      .setValues(filasParaGuardar);
-
+    var filaInicial = sheet.getLastRow() + 1;
+    sheet.getRange(filaInicial, 1, filasParaGuardar.length, 9).setValues(filasParaGuardar);
 
     return {
-
       exito: true,
-
-      mensaje:
-        "Venta guardada correctamente.",
-
-      correlativo:
-        correlativo
-
+      mensaje: 'Venta guardada correctamente.',
+      correlativo: correlativo
     };
-
 
   } catch (error) {
-
     return {
-
       exito: false,
-
-      mensaje:
-        "Error al guardar la venta: " +
-        error.toString()
-
+      mensaje: 'Error al guardar la venta: ' + error.toString()
     };
-
   }
-
 }
-
 
 /**
  * Busca una venta completa mediante su correlativo.
- *
- * Puede devolver varias filas si una venta
- * tiene varias variedades/productos.
  */
 function buscarVentaPorCorrelativo(correlativo) {
-
   try {
+    var ss = SpreadsheetApp.openById(ID_SS_MAESTRO_GUIAS);
+    var sheet = ss.getSheetByName('VENTAS');
 
-    var sheetId =
-      "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
+    if (!sheet) return { exito: false, mensaje: 'No se encontró la pestaña VENTAS.' };
 
+    var buscado = String(correlativo || '').trim().toUpperCase();
+    if (!buscado) return { exito: false, mensaje: 'Ingrese un correlativo para buscar.' };
 
-    var ss =
-      SpreadsheetApp.openById(sheetId);
+    var ultimaFila = sheet.getLastRow();
+    if (ultimaFila <= 1) return { exito: false, mensaje: 'La pestaña VENTAS no contiene registros.' };
 
-
-    var sheet =
-      ss.getSheetByName("VENTAS");
-
-
-    if (!sheet) {
-
-      return {
-
-        exito: false,
-
-        mensaje:
-          "No se encontró la pestaña VENTAS."
-
-      };
-
-    }
-
-
-    var buscado =
-      String(correlativo || "")
-        .trim()
-        .toUpperCase();
-
-
-    if (!buscado) {
-
-      return {
-
-        exito: false,
-
-        mensaje:
-          "Ingrese un correlativo para buscar."
-
-      };
-
-    }
-
-
-    var ultimaFila =
-      sheet.getLastRow();
-
-
-    if (ultimaFila <= 1) {
-
-      return {
-
-        exito: false,
-
-        mensaje:
-          "La pestaña VENTAS no contiene registros."
-
-      };
-
-    }
-
-
-    var datos =
-      sheet
-        .getRange(
-          2,
-          1,
-          ultimaFila - 1,
-          9
-        )
-        .getValues();
-
-
+    var datos = sheet.getRange(2, 1, ultimaFila - 1, 9).getValues();
     var resultados = [];
 
+    for (var i = 0; i < datos.length; i++) {
+      var correlativoFila = String(datos[i][0] || '').trim().toUpperCase();
+      if (correlativoFila !== buscado) continue;
 
-    for (
-      var i = 0;
-      i < datos.length;
-      i++
-    ) {
-
-      var correlativoFila =
-        String(
-          datos[i][0] || ""
-        )
-        .trim()
-        .toUpperCase();
-
-
-      if (
-        correlativoFila ===
-        buscado
-      ) {
-
-        var fecha =
-          datos[i][1];
-
-
-        var fechaFormateada = "";
-
-
-        if (fecha instanceof Date) {
-
-          fechaFormateada =
-            Utilities.formatDate(
-              fecha,
-              Session.getScriptTimeZone(),
-              "dd/MM/yyyy"
-            );
-
-        } else {
-
-          fechaFormateada =
-            String(fecha || "").trim();
-
-        }
-
-
-        resultados.push({
-
-          correlativo:
-            String(datos[i][0] || "").trim(),
-
-          fechaDespacho:
-            fechaFormateada,
-
-          ruc:
-            String(datos[i][2] || "").trim(),
-
-          cliente:
-            String(datos[i][3] || "").trim(),
-
-          codigo:
-            String(datos[i][4] || "").trim(),
-
-          variedad:
-            String(datos[i][5] || "").trim(),
-
-          kgTotal:
-            parseFloat(datos[i][6]) || 0,
-
-          empresa:
-            String(datos[i][7] || "").trim(),
-
-          linkOrigen:
-            String(datos[i][8] || "").trim()
-
-        });
-
+      var fecha = datos[i][1];
+      var fechaFormateada = '';
+      if (fecha instanceof Date) {
+        fechaFormateada = Utilities.formatDate(
+          fecha,
+          Session.getScriptTimeZone(),
+          'dd/MM/yyyy'
+        );
+      } else {
+        fechaFormateada = String(fecha || '').trim();
       }
 
+      resultados.push({
+        correlativo: String(datos[i][0] || '').trim(),
+        fechaDespacho: fechaFormateada,
+        ruc: String(datos[i][2] || '').trim(),
+        cliente: String(datos[i][3] || '').trim(),
+        codigo: String(datos[i][4] || '').trim(),
+        variedad: String(datos[i][5] || '').trim(),
+        kgTotal: parseFloat(datos[i][6]) || 0,
+        empresa: String(datos[i][7] || '').trim(),
+        linkOrigen: String(datos[i][8] || '').trim()
+      });
     }
-
 
     if (!resultados.length) {
-
       return {
-
         exito: false,
-
-        mensaje:
-          "No se encontró ninguna venta con el correlativo: " +
-          correlativo
-
+        mensaje: 'No se encontró ninguna venta con el correlativo: ' + correlativo
       };
-
     }
 
-
-    return {
-
-      exito: true,
-
-      datos: resultados
-
-    };
-
+    return { exito: true, datos: resultados };
 
   } catch (error) {
-
     return {
-
       exito: false,
-
-      mensaje:
-        "Error al buscar la venta: " +
-        error.toString()
-
+      mensaje: 'Error al buscar la venta: ' + error.toString()
     };
-
   }
-
-}
-
-// ============================================================
-// SERVICIOS PARA MÓDULO DE VENTAS - LINK DE ORIGEN
-// ============================================================
-function extraerIdSpreadsheetDesdeUrl_(url) {
-  var texto = String(url || '').trim();
-  var match = texto.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  return match && match[1] ? match[1] : '';
-}
-
-function obtenerProductosDesdeLinkVenta(empresaSeleccionada, urlOrigen) {
-  try {
-    var empresa = String(empresaSeleccionada || '').trim().toUpperCase();
-    var url = String(urlOrigen || '').trim();
-    if (!empresa) return {exito:false,mensaje:'Debe seleccionar una empresa.'};
-    if (!url) return {exito:false,mensaje:'Debe ingresar un link de origen.'};
-    var spreadsheetId = extraerIdSpreadsheetDesdeUrl_(url);
-    if (!spreadsheetId) return {exito:false,mensaje:'El link no corresponde a un Google Sheets válido.'};
-    var ssOrigen = SpreadsheetApp.openById(spreadsheetId);
-    var gidMatch = url.match(/[?#&]gid=(\d+)/);
-    var sheet = gidMatch ? ssOrigen.getSheetById(Number(gidMatch[1])) : null;
-    if (!sheet) sheet = ssOrigen.getSheetByName('DESCARTE');
-    if (!sheet) sheet = ssOrigen.getSheets()[0];
-    if (!sheet) return {exito:false,mensaje:'No se pudo identificar la pestaña del archivo.'};
-    var lastRow = sheet.getLastRow();
-    if (lastRow < 1) return {exito:false,mensaje:'La pestaña indicada no contiene datos.'};
-    // Estructura confirmada: B=EMPRESA, C=SEDE, D=COD, E=DESCRIPCIÓN, F=auxiliar, G=CANT/KG, H=UM.
-    var datos = sheet.getRange(1,2,lastRow,7).getDisplayValues();
-    var normalizar=function(v){return String(v==null?'':v).trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');};
-    var aliases=({AGA:['AGA','AGRICOLA ANDREA','AGRICOLA ANDREA SAC'],LARAMA:['LARAMA','AGROPECUARIA LARAMA','AGROPECUARIA LARAMA SAC'],ARENUVA:['ARENUVA','AGRICOLA ARENUVA','AGRICOLA ARENUVA SAC']})[empresa]||[empresa];
-    var coincide=function(v){var f=normalizar(v);return aliases.some(function(a){a=normalizar(a);return f===a||f.indexOf(a)>=0;});};
-    var toNumber=function(v){var s=String(v==null?'':v).trim().replace(/\s/g,'');if(!s)return 0;if(s.indexOf(',')>=0&&s.indexOf('.')>=0)s=s.replace(/,/g,'');else if(s.indexOf(',')>=0)s=s.replace(/,/g,'');var n=parseFloat(s);return isNaN(n)?0:n;};
-    var productos=[];
-    for(var i=0;i<datos.length;i++){
-      var fila=datos[i];
-      var empresaFila=fila[0], codigo=String(fila[2]||'').trim(), descripcion=String(fila[3]||'').trim(), kg=toNumber(fila[5]), um=String(fila[6]||'').trim();
-      if(!coincide(empresaFila)||!codigo||!descripcion)continue;
-      if(!/^\d+$/.test(codigo.replace(/\s/g,'')))continue;
-      productos.push({codigo:codigo,descripcion:descripcion.toUpperCase(),cantidad:kg,um:um||'KG'});
-    }
-    if(!productos.length)return{exito:false,mensaje:'No se encontraron códigos para la empresa '+empresa+' en la pestaña '+sheet.getName()+'.'};
-    return{exito:true,empresa:empresa,productos:productos,cantidad:productos.length,pestaña:sheet.getName(),gid:String(sheet.getSheetId())};
-  }catch(error){return{exito:false,mensaje:'No se pudo leer el link de origen: '+error.toString()};}
-}
-
-// ============================================================
-// CLIENTE POR RUC: busca en el historial de VENTAS
-// ============================================================
-function buscarClientePorRuc(ruc) {
-  try {
-    var ss=SpreadsheetApp.openById('110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4');
-    var sheet=ss.getSheetByName('VENTAS');
-    if(!sheet)return{exito:false,cliente:''};
-    var buscado=String(ruc||'').trim().toUpperCase().replace(/[\s\-.]/g,'');
-    if(!buscado)return{exito:false,cliente:''};
-    var lastRow=sheet.getLastRow();
-    if(lastRow<=1)return{exito:false,cliente:''};
-    var datos=sheet.getRange(2,3,lastRow-1,2).getDisplayValues();
-    for(var i=datos.length-1;i>=0;i--){
-      var rucFila=String(datos[i][0]||'').trim().toUpperCase().replace(/[\s\-.]/g,'');
-      var cliente=String(datos[i][1]||'').trim();
-      if(rucFila===buscado&&cliente)return{exito:true,cliente:cliente};
-    }
-    return{exito:false,cliente:''};
-  }catch(error){return{exito:false,cliente:'',mensaje:error.toString()};}
 }
