@@ -9,21 +9,30 @@
  * ============================================================
  */
 
-function getDashboardData(empresa, fechaInicio, fechaFin) {
+function getDashboardData(empresa, fechaInicio, fechaFin, variedad) {
   try {
     var ss = SpreadsheetApp.openById(_dashboardSpreadsheetId_());
-    var sheetGuias = ss.getSheetByName('HISTORIAL_GUIAS');
     var sheetVentas = ss.getSheetByName('VENTAS');
 
     var filtroEmpresa = _dashboardNormalizar_(empresa || 'TODAS');
+    var filtroVariedad = _dashboardNormalizar_(variedad || 'TODAS');
     var inicio = _dashboardFecha_(fechaInicio, false);
     var fin = _dashboardFecha_(fechaFin, true);
 
-    var guias = _dashboardLeerGuias_(sheetGuias, filtroEmpresa, inicio, fin);
+    var guias = [];
     var ventas = _dashboardLeerVentas_(sheetVentas, filtroEmpresa, inicio, fin);
 
-    var reporte = _dashboardLeerReporte_(empresa || 'TODAS', fechaInicio, fechaFin);
-    var stock = _dashboardLeerStockSAP_(empresa || 'TODAS');
+    if (filtroVariedad && filtroVariedad !== 'TODAS') {
+      ventas = ventas.filter(function(v) {
+        var vVariedad = _dashboardNormalizar_(v.variedad);
+        return vVariedad === filtroVariedad ||
+               vVariedad.indexOf(filtroVariedad) >= 0 ||
+               filtroVariedad.indexOf(vVariedad) >= 0;
+      });
+    }
+
+    var reporte = _dashboardLeerReporte_(empresa || 'TODAS', fechaInicio, fechaFin, filtroVariedad);
+    var stock = _dashboardLeerStockSAP_(empresa || 'TODAS', fechaInicio, fechaFin, filtroVariedad, reporte.cruceMapa);
 
     var kpis = _dashboardKpis_(guias, ventas);
 
@@ -31,21 +40,48 @@ function getDashboardData(empresa, fechaInicio, fechaFin) {
     kpis.kilosCampo = reporte.campo;
     kpis.kilosPacking = reporte.packing;
     kpis.stockActual = stock.total;
+    kpis.stockPendienteVenta = stock.pendienteVenta;
+    kpis.diferenciasStock = stock.diferenciasTotal;
+
+    var ventasPorVariedad = {};
+    ventas.forEach(function(v) {
+      var key = _dashboardNormalizar_(v.variedad || 'SIN VARIEDAD');
+      if (!ventasPorVariedad[key]) ventasPorVariedad[key] = 0;
+      ventasPorVariedad[key] += v.kg;
+    });
+
+    stock.controlStock = stock.porVariedad.map(function(item) {
+      var key = _dashboardNormalizar_(item.variedad);
+      var vendido = ventasPorVariedad[key] || 0;
+      var pendiente = item.stock - vendido;
+      return {
+        variedad: item.variedad,
+        stock: item.stock,
+        vendido: vendido,
+        pendiente: pendiente,
+        estado: pendiente > 0.01 ? 'PENDIENTE DE VENTA' : (pendiente < -0.01 ? 'SALIDA SUPERIOR AL STOCK' : 'OK')
+      };
+    });
+
+    kpis.stockPendienteVenta = stock.controlStock.reduce(function(suma, item) {
+      return suma + Math.max(item.pendiente, 0);
+    }, 0);
 
     return {
       exito: true,
 
       filtros: {
         empresa: filtroEmpresa || 'TODAS',
+        variedad: filtroVariedad || 'TODAS',
         fechaInicio: fechaInicio || '',
         fechaFin: fechaFin || ''
       },
 
       kpis: kpis,
 
-      porEmpresa: _dashboardAgruparEmpresa_(guias),
-      porFecha: _dashboardAgruparFecha_(guias),
-      porProducto: _dashboardTopProductos_(guias, 10),
+      porEmpresa: [],
+      porFecha: [],
+      porProducto: [],
       porCliente: _dashboardTopClientes_(ventas, 5),
 
       porFechaReporte: reporte.porFecha,
@@ -54,6 +90,10 @@ function getDashboardData(empresa, fechaInicio, fechaFin) {
 
       stockPorEmpresa: stock.porEmpresa,
       stockPorProducto: stock.porProducto,
+      stockPorVariedad: stock.porVariedad,
+      controlStock: stock.controlStock,
+      diferencias: stock.diferencias,
+      variedadesDisponibles: stock.variedadesDisponibles,
 
       recientesGuias: _dashboardRecientesGuias_(guias, 6),
       recientesVentas: _dashboardRecientesVentas_(ventas, 6)
@@ -84,6 +124,32 @@ function _dashboardNormalizar_(valor) {
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+}
+
+function _dashboardFechaDesdeCelda_(celda) {
+  if (!celda) return null;
+
+  if (Object.prototype.toString.call(celda) === '[object Date]') {
+    var d = new Date(celda.getTime());
+    d.setHours(0, 0, 0, 0);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  var texto = String(celda).trim();
+  if (!texto) return null;
+
+  var p = texto.indexOf('/') >= 0 ? texto.split('/') : texto.split('-');
+  if (p.length !== 3) return null;
+
+  var d2;
+  if (texto.indexOf('/') >= 0) {
+    d2 = new Date(Number(p[2]), Number(p[1]) - 1, Number(p[0]));
+  } else {
+    d2 = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  }
+
+  d2.setHours(0, 0, 0, 0);
+  return isNaN(d2.getTime()) ? null : d2;
 }
 
 function _dashboardFecha_(valor, finDelDia) {
@@ -486,7 +552,7 @@ function _dashboardRecientesVentas_(ventas, limite) {
     })
     .slice(0, limite || 6);
 }
-function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin) {
+function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin, filtroVariedad) {
   var resultado = {
     totalKg: 0,
     campo: 0,
@@ -506,6 +572,7 @@ function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin) {
     var mapaFecha = {};
     var mapaEmpresa = {};
     var mapaVariedad = {};
+    var cruceMapa = {};
 
     var filtro = _dashboardNormalizar_(empresa || 'TODAS');
 
@@ -526,6 +593,19 @@ function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin) {
       var tipo = presentacion.indexOf('PACKING') >= 0
         ? 'PACKING'
         : 'CAMPO';
+
+      var fechaKeyCruce = fecha;
+      var partesFechaCruce = fecha.split('/');
+      if (partesFechaCruce.length === 3) {
+        fechaKeyCruce = partesFechaCruce[0] + '/' + partesFechaCruce[1] + '/' + partesFechaCruce[2];
+      }
+
+      var cruceKey = _dashboardNormalizar_(empresaFila) + '|' +
+        fechaKeyCruce + '|' +
+        _dashboardNormalizar_(variedad) + '|' +
+        tipo;
+
+      cruceMapa[cruceKey] = (cruceMapa[cruceKey] || 0) + kg;
 
       resultado.totalKg += kg;
 
@@ -599,6 +679,7 @@ function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin) {
       return b.kg - a.kg;
     });
 
+    resultado.cruceMapa = cruceMapa;
     return resultado;
 
   } catch (e) {
@@ -607,232 +688,280 @@ function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin) {
 }
 
 
-function _dashboardLeerStockSAP_(empresa) {
-
+function _dashboardLeerStockSAP_(empresa, fechaInicio, fechaFin, filtroVariedad, mapaSispacking) {
   var resultado = {
     total: 0,
+    pendienteVenta: 0,
+    diferenciasTotal: 0,
+    diferencias: [],
     porEmpresa: [],
-    porProducto: []
+    porProducto: [],
+    porVariedad: [],
+    controlStock: [],
+    variedadesDisponibles: []
   };
 
   try {
-
-    var ss = SpreadsheetApp.openById(
-      _dashboardSpreadsheetId_()
-    );
-
-    var filtro = _dashboardNormalizar_(
-      empresa || 'TODAS'
-    );
-
+    var filtro = _dashboardNormalizar_(empresa || 'TODAS');
     var empresas = filtro === 'TODAS'
       ? ['AGA', 'LARAMA', 'ARENUVA']
       : [filtro];
 
+    mapaSispacking = mapaSispacking || {};
+
+    var inicio = _dashboardFecha_(fechaInicio, false);
+    var fin = _dashboardFecha_(fechaFin, true);
+
+    var ss = SpreadsheetApp.openById(_dashboardSpreadsheetId_());
+    var listaProductosBD = [];
+    var sheetProductos = ss.getSheetByName('BD-PRODUCTOS');
+
+    if (sheetProductos && sheetProductos.getLastRow() > 1) {
+      var datosProd = sheetProductos.getDataRange().getValues();
+      for (var p = 1; p < datosProd.length; p++) {
+        var codCelda = datosProd[p][0] ? datosProd[p][0].toString().trim().toUpperCase() : '';
+        var descCelda = datosProd[p][1] ? datosProd[p][1].toString().trim().toUpperCase() : '';
+        if (codCelda && descCelda) {
+          listaProductosBD.push({ codigo: codCelda, descripcion: descCelda });
+        }
+      }
+    }
+
     var mapaEmpresa = {};
     var mapaProducto = {};
+    var mapaVariedad = {};
+    var mapaDiferencias = {};
+    var mapaSap = {};
+    var mapaStockFinal = {};
 
+    // SAP se lee una sola vez por empresa. No se vuelven a abrir los archivos SISPACKING.
     empresas.forEach(function(nombreEmpresa) {
+      var nombrePestanaSap = 'SAP ' + nombreEmpresa;
+      var sheetSap = ss.getSheetByName(nombrePestanaSap);
+      if (!sheetSap || sheetSap.getLastRow() <= 1) return;
 
-      var sheet = ss.getSheetByName(
-        'SAP ' + nombreEmpresa
-      );
-
-      if (!sheet) return;
-
-      var datos = sheet.getDataRange().getValues();
+      var datosSap = sheetSap.getDataRange().getValues();
 
       var variedadActual = '';
-      var tipoActual = '';
-      var ultimoStock = null;
-      var llaveActual = '';
+      var tipoGrupoActual = '';
+      var ultimoValorColJ = null;
+      var llaveStockActual = '';
 
-      for (var r = 1; r < datos.length; r++) {
-
-        var colA = datos[r][0] != null
-          ? String(datos[r][0]).trim()
-          : '';
-
-        var colB = datos[r][1] != null
-          ? String(datos[r][1]).trim().toUpperCase()
-          : '';
+      for (var r = 1; r < datosSap.length; r++) {
+        var colA = datosSap[r][0] ? datosSap[r][0].toString().trim() : '';
+        var colB = datosSap[r][1] ? datosSap[r][1].toString().trim().toUpperCase() : '';
 
         if (colA !== '' || colB !== '') {
+          if (colB !== '' && colB !== 'DESCRIPCIÓN' && colB !== 'DESCRIPCION') {
 
-          if (
-            colB !== '' &&
-            colB !== 'DESCRIPCIÓN' &&
-            colB !== 'DESCRIPCION'
-          ) {
-
-            if (
-              llaveActual !== '' &&
-              ultimoStock !== null
-            ) {
-
-              _dashboardAcumularStock_(
-                mapaEmpresa,
-                mapaProducto,
-                nombreEmpresa,
-                variedadActual,
-                tipoActual,
-                ultimoStock
-              );
+            if (llaveStockActual !== '' && ultimoValorColJ !== null) {
+              mapaStockFinal[nombreEmpresa + '|' + llaveStockActual] = ultimoValorColJ;
             }
 
-            tipoActual =
-              colB.indexOf('PACKING') >= 0
-                ? 'PACKING'
-                : 'CAMPO';
+            tipoGrupoActual = colB.includes('PACKING') ? 'PACKING' : 'CAMPO';
 
-            if (colB.indexOf('ROSITA') >= 0) {
+            if (colB.includes('ROSITA')) {
               variedadActual = 'ROSITA';
-
-            } else if (colB.indexOf('RAYMI') >= 0) {
+            } else if (colB.includes('RAYMI')) {
               variedadActual = 'RAYMI BLU';
-
-            } else if (colB.indexOf('DINA') >= 0) {
+            } else if (colB.includes('DINA')) {
               variedadActual = 'OZBLU® DINA';
-
-            } else if (colB.indexOf('CAROLINA') >= 0) {
+            } else if (colB.includes('CAROLINA')) {
               variedadActual = 'OZBLU® CAROLINA';
-
-            } else if (colB.indexOf('JULIETA') >= 0) {
+            } else if (colB.includes('JULIETA')) {
               variedadActual = 'OZBLU® JULIETA';
-
-            } else if (colB.indexOf('ANDREA') >= 0) {
+            } else if (colB.includes('ANDREA')) {
               variedadActual = 'OZBLU® ANDREA';
-
-            } else if (
-              colB.indexOf('MÁGICA') >= 0 ||
-              colB.indexOf('MAGICA') >= 0
-            ) {
+            } else if (colB.includes('MÁGICA') || colB.includes('MAGICA')) {
               variedadActual = 'OZBLU® MÁGICA';
-
-            } else if (colB.indexOf('OLIVIA') >= 0) {
+            } else if (colB.includes('OLIVIA')) {
               variedadActual = 'OZBLU® OLIVIA';
-
             } else {
-
-              variedadActual = colB
+              var limpiar = colB
                 .replace('ARÁNDANO FRESCO', '')
                 .replace('- DESCARTE CAMPO', '')
                 .replace('- DESCARTE PACKING', '')
                 .replace('CAMPO', '')
                 .replace('PACKING', '')
                 .trim();
+              if (limpiar) variedadActual = limpiar;
             }
 
-            llaveActual =
-              variedadActual +
-              '|' +
-              tipoActual;
-
-            ultimoStock = null;
+            llaveStockActual = variedadActual + '|' + tipoGrupoActual;
+            ultimoValorColJ = null;
           }
         }
 
-        var valorJ = parseFloat(
-          datos[r][9]
-        );
+        var valJ = parseFloat(datosSap[r][9]);
+        if (!isNaN(valJ)) ultimoValorColJ = valJ;
 
-        if (!isNaN(valorJ)) {
-          ultimoStock = valorJ;
+        // Movimientos SAP: solo los que caen dentro del rango seleccionado.
+        var fRawS = datosSap[r][3];
+        var docCodigo = datosSap[r][4]
+          ? datosSap[r][4].toString().toUpperCase().replace(/\s+/g, '')
+          : '';
+        var cantidadS = parseFloat(datosSap[r][6]) || 0;
+
+        if ((docCodigo.indexOf('IM') === 0 || docCodigo.indexOf('EM') === 0) &&
+            cantidadS !== 0 && variedadActual !== '') {
+
+          var fObjS = _dashboardFechaDesdeCelda_(fRawS);
+          if (fObjS && _dashboardEnRango_(fObjS, inicio, fin)) {
+            var fTxtS = Utilities.formatDate(
+              fObjS,
+              Session.getScriptTimeZone(),
+              'dd/MM/yyyy'
+            );
+
+            var llaveS = nombreEmpresa + '|' + fTxtS + '|' +
+              _dashboardNormalizar_(variedadActual) + '|' + tipoGrupoActual;
+
+            mapaSap[llaveS] = (mapaSap[llaveS] || 0) + cantidadS;
+          }
         }
       }
 
-      if (
-        llaveActual !== '' &&
-        ultimoStock !== null
-      ) {
-
-        _dashboardAcumularStock_(
-          mapaEmpresa,
-          mapaProducto,
-          nombreEmpresa,
-          variedadActual,
-          tipoActual,
-          ultimoStock
-        );
+      if (llaveStockActual !== '' && ultimoValorColJ !== null) {
+        mapaStockFinal[nombreEmpresa + '|' + llaveStockActual] = ultimoValorColJ;
       }
     });
 
-    resultado.porEmpresa =
-      Object.keys(mapaEmpresa)
-        .map(function(k) {
-          return mapaEmpresa[k];
-        });
+    // STOCK ACTUAL: último valor disponible del bloque SAP.
+    Object.keys(mapaStockFinal).forEach(function(key) {
+      var partes = key.split('|');
+      var nombreEmpresa = partes.shift();
+      var variedad = partes[0] || 'SIN VARIEDAD';
+      var tipo = partes[1] || 'OTRO';
 
-    resultado.porEmpresa.sort(function(a, b) {
-      return b.kg - a.kg;
+      var variedadNormalizada = _dashboardNormalizar_(variedad);
+      if (
+        filtroVariedad &&
+        filtroVariedad !== 'TODAS' &&
+        variedadNormalizada !== filtroVariedad &&
+        variedadNormalizada.indexOf(filtroVariedad) < 0 &&
+        filtroVariedad.indexOf(variedadNormalizada) < 0
+      ) return;
+
+      var kg = _dashboardNumero_(mapaStockFinal[key]);
+      var empKey = nombreEmpresa;
+      var prodKey = nombreEmpresa + '|' + variedadNormalizada + '|' + tipo;
+
+      if (!mapaEmpresa[empKey]) {
+        mapaEmpresa[empKey] = { empresa: nombreEmpresa, kg: 0 };
+      }
+      mapaEmpresa[empKey].kg += kg;
+
+      if (!mapaProducto[prodKey]) {
+        mapaProducto[prodKey] = {
+          empresa: nombreEmpresa,
+          variedad: variedad,
+          tipo: tipo === 'CAMPO' ? 'GRANEL DESCARTE CAMPO' : 'DESCARTE PACKING',
+          kg: 0
+        };
+      }
+      mapaProducto[prodKey].kg += kg;
+
+      if (!mapaVariedad[variedadNormalizada]) {
+        mapaVariedad[variedadNormalizada] = {
+          variedad: variedad,
+          stock: 0,
+          kg: 0
+        };
+      }
+      mapaVariedad[variedadNormalizada].stock += kg;
+      mapaVariedad[variedadNormalizada].kg += kg;
     });
 
-    resultado.porProducto =
-      Object.keys(mapaProducto)
-        .map(function(k) {
-          return mapaProducto[k];
-        });
+    // DIFERENCIAS: SAP del rango seleccionado vs SISPACKING del mismo rango.
+    var clavesCruce = {};
+    Object.keys(mapaSap).forEach(function(key) { clavesCruce[key] = true; });
+    Object.keys(mapaSispacking).forEach(function(key) { clavesCruce[key] = true; });
 
-    resultado.porProducto.sort(function(a, b) {
-      return b.kg - a.kg;
+    Object.keys(clavesCruce).forEach(function(key) {
+      var totalSap = mapaSap[key] || 0;
+      var totalSispacking = mapaSispacking[key] || 0;
+      var diferencia = totalSap - totalSispacking;
+
+      if (Math.abs(diferencia) <= 0.01) return;
+
+      var partes = key.split('|');
+      var nombreEmpresa = partes[0];
+      var fecha = partes[1];
+      var variedadNormalizada = partes[2];
+      var tipo = partes[3];
+
+      var variedad = variedadNormalizada;
+      var prodDescripcion = variedadNormalizada;
+
+      for (var b = 0; b < listaProductosBD.length; b++) {
+        var desc = listaProductosBD[b].descripcion;
+        if (
+          desc.indexOf(variedadNormalizada) >= 0 ||
+          variedadNormalizada.indexOf(desc) >= 0
+        ) {
+          prodDescripcion = desc;
+          break;
+        }
+      }
+
+      var diffKey = nombreEmpresa + '|' + variedadNormalizada + '|' + tipo;
+
+      if (!mapaDiferencias[diffKey]) {
+        mapaDiferencias[diffKey] = {
+          empresa: nombreEmpresa,
+          variedad: variedad || prodDescripcion,
+          diferencia: 0,
+          fecha: fecha
+        };
+      }
+
+      mapaDiferencias[diffKey].diferencia += diferencia;
     });
 
-    resultado.total =
-      resultado.porEmpresa.reduce(
-        function(suma, item) {
-          return suma + item.kg;
-        },
-        0
-      );
+    resultado.porEmpresa = Object.keys(mapaEmpresa)
+      .map(function(k) { return mapaEmpresa[k]; })
+      .sort(function(a, b) { return b.kg - a.kg; });
+
+    resultado.porProducto = Object.keys(mapaProducto)
+      .map(function(k) { return mapaProducto[k]; })
+      .sort(function(a, b) { return b.kg - a.kg; });
+
+    resultado.porVariedad = Object.keys(mapaVariedad)
+      .map(function(k) { return mapaVariedad[k]; })
+      .sort(function(a, b) { return b.stock - a.stock; });
+
+    resultado.total = resultado.porEmpresa.reduce(function(suma, item) {
+      return suma + item.kg;
+    }, 0);
+
+    resultado.diferencias = Object.keys(mapaDiferencias)
+      .map(function(k) { return mapaDiferencias[k]; })
+      .filter(function(item) { return Math.abs(item.diferencia) > 0.01; })
+      .sort(function(a, b) {
+        return Math.abs(b.diferencia) - Math.abs(a.diferencia);
+      });
+
+    resultado.diferenciasTotal = resultado.diferencias.reduce(function(suma, item) {
+      return suma + Math.abs(item.diferencia);
+    }, 0);
+
+    resultado.controlStock = resultado.porVariedad.map(function(item) {
+      return {
+        variedad: item.variedad,
+        stock: item.stock,
+        vendido: 0,
+        pendiente: item.stock,
+        estado: item.stock > 0 ? 'PENDIENTE DE VENTA' : 'SIN STOCK'
+      };
+    });
+
+    resultado.variedadesDisponibles = resultado.porVariedad
+      .map(function(item) { return item.variedad; })
+      .sort(function(a, b) { return a.localeCompare(b); });
 
     return resultado;
 
   } catch (e) {
-
     return resultado;
   }
-}
-
-
-function _dashboardAcumularStock_(
-  mapaEmpresa,
-  mapaProducto,
-  empresa,
-  variedad,
-  tipo,
-  stock
-) {
-
-  var kg = _dashboardNumero_(stock);
-
-  var empKey = empresa;
-
-  var prodKey =
-    empresa +
-    '|' +
-    _dashboardNormalizar_(variedad) +
-    '|' +
-    tipo;
-
-  if (!mapaEmpresa[empKey]) {
-
-    mapaEmpresa[empKey] = {
-      empresa: empresa,
-      kg: 0
-    };
-  }
-
-  mapaEmpresa[empKey].kg += kg;
-
-  if (!mapaProducto[prodKey]) {
-
-    mapaProducto[prodKey] = {
-      empresa: empresa,
-      variedad: variedad,
-      tipo: tipo,
-      kg: 0
-    };
-  }
-
-  mapaProducto[prodKey].kg += kg;
 }
