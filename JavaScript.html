@@ -116,7 +116,7 @@
       if (tbodyCampo) {
         tbodyCampo.innerHTML = "";
         if (campoRows.length === 0) {
-          tbodyCampo.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>';
+          tbodyCampo.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>';
         } else {
           var htmlCampo = "";
           campoRows.forEach(function(r) {
@@ -126,6 +126,7 @@
               '<td>' + (r.fecha || '') + '</td>' +
               '<td>' + (r.planta || '') + '</td>' +
               '<td>' + (r.presentacion || '') + '</td>' +
+              '<td style="font-weight:bold; white-space:nowrap;">' + (r.codigo || '-') + '</td>' +
               '<td>' + (r.variedad || '') + '</td>' +
               '<td style="text-align:right; font-weight:bold;">' + peso.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
             '</tr>';
@@ -133,7 +134,7 @@
 
           // Fila Subtotal Campo
           htmlCampo += '<tr style="border-top: 2px solid #cbd5e1; font-weight: bold; background-color: #f8fafc;">' +
-            '<td colspan="4" style="color: #475569; text-transform: uppercase;">TOTAL DESCARTE CAMPO</td>' +
+            '<td colspan="5" style="color: #475569; text-transform: uppercase;">TOTAL DESCARTE CAMPO</td>' +
             '<td style="text-align:right; font-weight:900;">' + subtotalCampo.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
           '</tr>';
 
@@ -145,7 +146,7 @@
       if (tbodyPacking) {
         tbodyPacking.innerHTML = "";
         if (packingRows.length === 0) {
-          tbodyPacking.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>';
+          tbodyPacking.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>';
         } else {
           var htmlPacking = "";
           packingRows.forEach(function(r) {
@@ -155,6 +156,7 @@
               '<td>' + (r.fecha || '') + '</td>' +
               '<td>' + (r.planta || '') + '</td>' +
               '<td>' + (r.presentacion || '') + '</td>' +
+              '<td style="font-weight:bold; white-space:nowrap;">' + (r.codigo || '-') + '</td>' +
               '<td>' + (r.variedad || '') + '</td>' +
               '<td style="text-align:right; font-weight:bold;">' + peso.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
             '</tr>';
@@ -162,7 +164,7 @@
 
           // Fila Subtotal Packing
           htmlPacking += '<tr style="border-top: 2px solid #cbd5e1; font-weight: bold; background-color: #f8fafc;">' +
-            '<td colspan="4" style="color: #475569; text-transform: uppercase;">TOTAL DESCARTE PACKING</td>' +
+            '<td colspan="5" style="color: #475569; text-transform: uppercase;">TOTAL DESCARTE PACKING</td>' +
             '<td style="text-align:right; font-weight:900;">' + subtotalPacking.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
           '</tr>';
 
@@ -304,8 +306,8 @@
       var tbCampo = document.querySelector('#tabla-' + emp + '-campo tbody');
       var tbPacking = document.querySelector('#tabla-' + emp + '-packing tbody');
 
-      if (tbCampo) tbCampo.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>';
-      if (tbPacking) tbPacking.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Sin datos</td></tr>';
+      if (tbCampo) tbCampo.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>';
+      if (tbPacking) tbPacking.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>';
 
       var lblTot = document.getElementById('total-' + emp);
       if (lblTot) lblTot.innerText = "0.000";

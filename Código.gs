@@ -108,6 +108,74 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
       return { exito: true, datos: [], mensaje: "No se encontraron enlaces en el rango seleccionado." };
     }
     
+    // Cargar códigos desde BD-PRODUCTOS
+    var listaProductosBD = [];
+    var sheetProductos = ss.getSheetByName("BD-PRODUCTOS");
+
+    if (sheetProductos) {
+      var datosProductos = sheetProductos.getDataRange().getValues();
+
+      for (var p = 1; p < datosProductos.length; p++) {
+        var codigo = datosProductos[p][0]
+          ? datosProductos[p][0].toString().trim()
+          : "";
+
+        var descripcion = datosProductos[p][1]
+          ? datosProductos[p][1].toString().trim().toUpperCase()
+          : "";
+
+        if (codigo && descripcion) {
+          listaProductosBD.push({
+            codigo: codigo,
+            descripcion: descripcion
+          });
+        }
+      }
+    }
+
+    // Normalizar textos para relacionar la variedad con BD-PRODUCTOS
+    var normalizarProducto = function(texto) {
+      return String(texto || "")
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/OZBLU®/g, "")
+        .replace(/OZBLU/g, "")
+        .replace(/ARANDANO FRESCO/g, "")
+        .replace(/DESCARTE CAMPO/g, "")
+        .replace(/DESCARTE PACKING/g, "")
+        .replace(/DESCARTE/g, "")
+        .replace(/[-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    var buscarCodigoProducto = function(variedadProducto, presentacionProducto) {
+      var variedadNormalizada = normalizarProducto(variedadProducto);
+      var presentacionNormalizada = String(presentacionProducto || "").toUpperCase();
+
+      if (!variedadNormalizada) {
+        return "-";
+      }
+
+      var tipoDescarte = presentacionNormalizada.includes("PACKING")
+        ? "DESCARTE PACKING"
+        : "DESCARTE CAMPO";
+
+      for (var p = 0; p < listaProductosBD.length; p++) {
+        var descripcionBD = listaProductosBD[p].descripcion;
+
+        if (
+          descripcionBD.includes(tipoDescarte) &&
+          normalizarProducto(descripcionBD).includes(variedadNormalizada)
+        ) {
+          return listaProductosBD[p].codigo;
+        }
+      }
+
+      return "-";
+    };
+
     // Objeto temporal para acumular y agrupar las sumas
     var mapaAgrupado = {};
     
@@ -145,6 +213,10 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
                   planta: subDatos[j][13] ? subDatos[j][13].toString().trim() : "", 
                   presentacion: subDatos[j][3] ? subDatos[j][3].toString().trim() : "", 
                   variedad: subDatos[j][2] ? subDatos[j][2].toString().trim() : "", 
+                  codigo: buscarCodigoProducto(
+                    subDatos[j][2] ? subDatos[j][2].toString().trim() : "",
+                    subDatos[j][3] ? subDatos[j][3].toString().trim() : ""
+                  ),
                   peso: 0
                 };
               }
@@ -173,6 +245,10 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
                   planta: subDatos[j][21] ? subDatos[j][21].toString().trim() : "", 
                   presentacion: subDatos[j][5] ? subDatos[j][5].toString().trim() : "", 
                   variedad: subDatos[j][9] ? subDatos[j][9].toString().trim() : "", 
+                  codigo: buscarCodigoProducto(
+                    subDatos[j][9] ? subDatos[j][9].toString().trim() : "",
+                    subDatos[j][5] ? subDatos[j][5].toString().trim() : ""
+                  ),
                   peso: 0
                 };
               }
