@@ -6,12 +6,18 @@
   function inicializarDashboard() {
     var usuario = localStorage.getItem('sesion_usuario') || 'Usuario';
     var empresa = localStorage.getItem('sesion_empresa') || 'General';
+    var tipoAcceso = localStorage.getItem('sesion_tipo') || 'INTERNO';
     
     document.getElementById('lbl-nombre-usuario').innerText = usuario;
     document.getElementById('lbl-empresa-usuario').innerText = "Empresa: " + empresa;
     
     var opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('txt-fecha-actual').innerText = new Date().toLocaleDateString('es-ES', opciones);
+
+    var menuDespachos = document.getElementById('menu-despachos');
+    if (menuDespachos) {
+      menuDespachos.style.display = (empresa.toUpperCase() === 'ADMIN' && tipoAcceso !== 'CLIENTE') ? '' : 'none';
+    }
   }
 
   function cambiarPestana(evento, idTab) {
@@ -32,8 +38,9 @@
       'tab-dashboard': 'Dashboard General',
       'tab-reporte': 'Módulo de Reportes',
       'tab-cruce': 'Cruce de Stocks',
-      'tab-guias': 'Emisión de Guías Provisionales',
-      'tab-ventas': 'Módulo de Ventas'
+      'tab-guias': 'Despachos · Guía Provisional',
+      'tab-ventas': 'Módulo de Ventas',
+      'tab-despachos': 'Módulo de Despachos'
     };
     document.getElementById('txt-titulo-pestana').innerText = titulos[idTab];
 
@@ -43,6 +50,16 @@
 
     if (idTab === 'tab-ventas') {
       inicializarModuloVentas();
+    }
+
+    if (idTab === 'tab-despachos') {
+      var contenedorPrincipal = document.querySelector('.main-content');
+      if (contenedorPrincipal) contenedorPrincipal.scrollTop = 0;
+      inicializarModuloDespachos();
+      requestAnimationFrame(function(){
+        var tabDespachos = document.getElementById('tab-despachos');
+        if (tabDespachos && contenedorPrincipal) contenedorPrincipal.scrollTop = Math.max(0, tabDespachos.offsetTop - 4);
+      });
     }
   }
 
@@ -122,12 +139,13 @@
           campoRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
             subtotalCampo += peso;
+            var tipoCampo = 'DESCARTE CAMPO';
             htmlCampo += '<tr>' +
               '<td>' + (r.fecha || '') + '</td>' +
               '<td>' + (r.planta || '') + '</td>' +
-              '<td>' + (r.presentacion || '') + '</td>' +
               '<td style="font-weight:bold; white-space:nowrap;">' + (r.codigo || '-') + '</td>' +
               '<td>' + (r.variedad || '') + '</td>' +
+              '<td><span class="reporte-tipo-chip reporte-tipo-campo">' + tipoCampo + '</span></td>' +
               '<td style="text-align:right; font-weight:bold;">' + peso.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
             '</tr>';
           });
@@ -152,12 +170,13 @@
           packingRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
             subtotalPacking += peso;
+            var tipoPacking = 'DESCARTE PACKING';
             htmlPacking += '<tr>' +
               '<td>' + (r.fecha || '') + '</td>' +
               '<td>' + (r.planta || '') + '</td>' +
-              '<td>' + (r.presentacion || '') + '</td>' +
               '<td style="font-weight:bold; white-space:nowrap;">' + (r.codigo || '-') + '</td>' +
               '<td>' + (r.variedad || '') + '</td>' +
+              '<td><span class="reporte-tipo-chip reporte-tipo-packing">' + tipoPacking + '</span></td>' +
               '<td style="text-align:right; font-weight:bold;">' + peso.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + '</td>' +
             '</tr>';
           });

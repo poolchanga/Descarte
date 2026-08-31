@@ -1,0 +1,91 @@
+<div id="modulo-despachos-cliente">
+  <style>
+    #modulo-despachos-cliente { padding:18px; box-sizing:border-box; }
+    #modulo-despachos-cliente .despachos-client-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:16px; }
+    #modulo-despachos-cliente .despachos-client-head h2 { margin:3px 0; color:#29484B; font-size:25px; }
+    #modulo-despachos-cliente .despachos-client-head p { margin:0; color:#718184; font-size:12px; }
+    #modulo-despachos-cliente .despachos-client-badge { background:#EEF5F3; color:#2F7D62; border:1px solid #CFE2DB; padding:8px 12px; border-radius:7px; font-size:11px; font-weight:900; }
+    #modulo-despachos-cliente .despachos-client-filtros { display:grid; grid-template-columns:1fr 1fr auto; gap:12px; background:#fff; padding:14px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.06); margin-bottom:14px; }
+    #modulo-despachos-cliente .despachos-client-filtros label { display:block; color:#526C70; font-size:10px; font-weight:800; margin-bottom:5px; }
+    #modulo-despachos-cliente input { width:100%; box-sizing:border-box; border:1px solid #CBD8D9; border-radius:6px; padding:9px 10px; background:#F8FAFA; font-size:12px; }
+    #modulo-despachos-cliente .despachos-client-filtros button { align-self:end; border:0; border-radius:7px; padding:10px 16px; background:#2F7D62; color:#fff; font-weight:800; cursor:pointer; }
+    #modulo-despachos-cliente .despachos-client-resultados { display:grid; gap:12px; }
+    #modulo-despachos-cliente .despachos-client-info { background:#EEF5F3; border:1px solid #CFE2DB; color:#526C70; border-radius:8px; padding:9px 12px; font-size:10px; margin-bottom:10px; }
+    #modulo-despachos-cliente .despachos-client-empresa-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 135px; gap:12px; padding:10px 12px; }
+    #modulo-despachos-cliente .despachos-client-box { border:1px solid #DCE7E8; border-radius:7px; overflow:hidden; background:#fff; }
+    #modulo-despachos-cliente .despachos-client-box-title { background:#819DA7; color:#fff; padding:7px 9px; font-size:10px; font-weight:900; }
+    #modulo-despachos-cliente .despachos-client-total-box { background:#F2F7FA; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100%; text-align:center; }
+    #modulo-despachos-cliente .despachos-client-total-box .label { color:#38575A; font-size:9px; font-weight:900; }
+    #modulo-despachos-cliente .despachos-client-total-box .value { color:#156082; font-size:22px; font-weight:900; margin-top:5px; }
+    #modulo-despachos-cliente .tipo-chip { display:inline-block; padding:2px 6px; border-radius:99px; font-size:8px; font-weight:900; }
+    #modulo-despachos-cliente .campo { background:#EAF4EE; color:#2F7D62; }
+    #modulo-despachos-cliente .packing { background:#EEF4FA; color:#3C6A95; }
+    #modulo-despachos-cliente .despachos-client-empresa { background:#fff; border:1px solid #DCE7E8; border-radius:9px; overflow:hidden; }
+    #modulo-despachos-cliente .despachos-client-empresa-head { background:#819DA7; color:#fff; padding:10px 13px; font-size:13px; font-weight:900; }
+    #modulo-despachos-cliente .despachos-client-tabla { padding:10px 12px; }
+    #modulo-despachos-cliente table { width:100%; border-collapse:collapse; font-size:10px; }
+    #modulo-despachos-cliente th { background:#F2F6F7; color:#587174; padding:7px 6px; text-align:left; font-size:9px; }
+    #modulo-despachos-cliente td { border-bottom:1px solid #EDF1F1; padding:7px 6px; color:#526466; }
+    #modulo-despachos-cliente td:last-child { text-align:right; font-weight:800; }
+    #modulo-despachos-cliente .despachos-client-total { text-align:right; color:#29484B; font-size:11px; font-weight:900; padding-top:8px; }
+    #modulo-despachos-cliente .despachos-client-general { max-width:420px; margin:14px auto; background:#FFF2CC; border:2px solid #FFD966; border-radius:8px; padding:14px; text-align:center; }
+    #modulo-despachos-cliente .despachos-client-general-label { color:#7F6000; font-size:11px; font-weight:900; letter-spacing:1px; }
+    #modulo-despachos-cliente .despachos-client-general-total { color:#7F6000; font-size:25px; font-weight:900; margin-top:3px; }
+    @media(max-width:700px){#modulo-despachos-cliente .despachos-client-filtros{grid-template-columns:1fr;}}
+  </style>
+  <div class="despachos-client-head"><div><div style="color:#5E8A8F;font-size:11px;font-weight:800;letter-spacing:.8px;">CONTROL DE ENTREGAS</div><h2>Mis Despachos</h2><p>Detalle de los productos registrados a nombre de su empresa.</p></div><div class="despachos-client-badge" id="despacho-cliente-nombre">CLIENTE</div></div>
+  <div class="despachos-client-filtros"><div><label>FECHA INICIO</label><input type="date" id="cliente-despacho-inicio"></div><div><label>FECHA FIN</label><input type="date" id="cliente-despacho-fin"></div><button type="button" onclick="buscarDespachosClienteInterfaz()">🔎 BUSCAR</button></div>
+  <div id="despachos-resultado-cliente" class="despachos-client-resultados"><div style="text-align:center;padding:25px;color:#879496;font-size:12px;">Cargando despachos...</div></div>
+</div>
+<script>
+  function _hoyClienteDespacho(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function inicializarDespachosCliente(){var hoy=_hoyClienteDespacho();document.getElementById('cliente-despacho-inicio').value=hoy;document.getElementById('cliente-despacho-fin').value=hoy;document.getElementById('despacho-cliente-nombre').textContent=localStorage.getItem('sesion_cliente')||'CLIENTE';buscarDespachosClienteInterfaz();}
+  function _escCliente(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+  function _kgCliente(v){return Number(v||0).toLocaleString('en-US',{minimumFractionDigits:3,maximumFractionDigits:3});}
+  function buscarDespachosClienteInterfaz(){var cont=document.getElementById('despachos-resultado-cliente');cont.innerHTML='<div style="text-align:center;padding:25px;color:#879496;font-size:12px;">🔎 Consultando...</div>';google.script.run.withSuccessHandler(renderizarDespachosCliente).withFailureHandler(function(e){cont.innerHTML='<div style="text-align:center;padding:25px;color:#B85A5A;font-size:12px;">Error: '+(e&&e.message?e.message:e)+'</div>';}).obtenerDespachosCliente(localStorage.getItem('sesion_token')||'',document.getElementById('cliente-despacho-inicio').value,document.getElementById('cliente-despacho-fin').value);}
+  function renderizarDespachosCliente(r){
+    var cont=document.getElementById('despachos-resultado-cliente');
+    if(!r||!r.exito||!r.datos||!r.datos.length){
+      cont.innerHTML='<div style="text-align:center;padding:25px;color:#879496;font-size:12px;">No hay despachos vigentes para el rango seleccionado.<br><span style="font-size:10px;">Cada despacho permanece visible durante 24 horas desde su registro.</span></div>';
+      return;
+    }
+
+    var empresas=['LARAMA','AGA','ARENUVA'];
+    var porEmpresa={},totalGeneral=0;
+    r.datos.forEach(function(x){
+      if(!porEmpresa[x.empresa])porEmpresa[x.empresa]=[];
+      porEmpresa[x.empresa].push(x);
+      totalGeneral+=Number(x.kg||0);
+    });
+
+    var html='<div class="despachos-client-info">⏱️ Los despachos mostrados están disponibles durante 24 horas desde su registro.</div>';
+
+    empresas.forEach(function(emp){
+      var filas=porEmpresa[emp];
+      if(!filas)return;
+      var campo=filas.filter(function(x){return String(x.tipo||'').toUpperCase().indexOf('PACKING')===-1;});
+      var packing=filas.filter(function(x){return String(x.tipo||'').toUpperCase().indexOf('PACKING')!==-1;});
+      var totalEmp=filas.reduce(function(a,x){return a+Number(x.kg||0);},0);
+      var sumaCampo=campo.reduce(function(a,x){return a+Number(x.kg||0);},0);
+      var sumaPacking=packing.reduce(function(a,x){return a+Number(x.kg||0);},0);
+
+      function tabla(lista, titulo){
+        if(!lista.length){
+          return '<div class="despachos-client-box"><div class="despachos-client-box-title">'+titulo+'</div><div style="padding:12px;text-align:center;color:#9aa5a7;font-size:9px;">Sin registros</div></div>';
+        }
+        var rows=lista.map(function(x){
+          var chip=String(x.tipo||'').toUpperCase().indexOf('PACKING')!==-1?'packing':'campo';
+          return '<tr><td>'+_escCliente(x.fecha)+'</td><td style="font-weight:800;white-space:nowrap;">'+_escCliente(x.codigo)+'</td><td>'+_escCliente(x.variedad||'-')+'</td><td><span class="tipo-chip '+chip+'">'+_escCliente(x.tipo||'-')+'</span></td><td>'+_kgCliente(x.kg)+'</td></tr>';
+        }).join('');
+        var total=lista.reduce(function(a,x){return a+Number(x.kg||0);},0);
+        return '<div class="despachos-client-box"><div class="despachos-client-box-title">'+titulo+'</div><div style="overflow:auto;"><table><thead><tr><th>FECHA</th><th>CÓDIGO</th><th>VARIEDAD</th><th>TIPO</th><th>PESO NETO (KG)</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="despachos-client-total">TOTAL '+titulo+': '+_kgCliente(total)+' KG</div></div>';
+      }
+
+      html+='<div class="despachos-client-empresa"><div class="despachos-client-empresa-head" style="display:flex;justify-content:space-between;align-items:center;"><span>'+emp+'</span><span>'+_kgCliente(totalEmp)+' KG</span></div><div class="despachos-client-empresa-grid">'+tabla(campo,'DESCARTE CAMPO')+tabla(packing,'DESCARTE PACKING')+'<div class="despachos-client-total-box"><div class="label">TOTAL '+emp+'</div><div class="value">'+_kgCliente(totalEmp)+'</div><div style="font-size:9px;color:#526C70;font-weight:800;">kg</div></div></div></div>';
+    });
+
+    html+='<div class="despachos-client-general"><div class="despachos-client-general-label">⚖️ TOTAL GENERAL RECIBIDO</div><div class="despachos-client-general-total">'+_kgCliente(totalGeneral)+' kg</div></div>';
+    cont.innerHTML=html;
+  }
+  document.addEventListener('DOMContentLoaded',inicializarDespachosCliente);
+</script>

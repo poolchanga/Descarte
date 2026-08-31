@@ -22,6 +22,9 @@
           // Guardar datos de sesión localmente en el navegador del cliente
           localStorage.setItem('sesion_usuario', resultado.usuario);
           localStorage.setItem('sesion_empresa', resultado.empresa);
+          localStorage.setItem('sesion_tipo', resultado.tipoAcceso || 'INTERNO');
+          localStorage.setItem('sesion_cliente', resultado.cliente || '');
+          localStorage.setItem('sesion_token', resultado.token || '');
           
           // Reemplazar todo el cuerpo con la interfaz principal
           google.script.run
@@ -30,7 +33,7 @@
               document.write(htmlInterfaz);
               document.close();
             })
-            .cargarInterfazPrincipal();
+            .cargarInterfazPrincipal(resultado.tipoAcceso || 'INTERNO', resultado.cliente || '', resultado.usuario || '');
         } else {
           mensajeDiv.innerText = resultado.mensaje;
           mensajeDiv.className = "login-error";

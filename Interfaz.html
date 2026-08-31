@@ -125,6 +125,22 @@
       }
     </style>
     <style>
+
+      #tab-reporte #div-resultado-reporte .reporte-tipo-chip {
+        display:inline-block !important;
+        padding:2px 6px !important;
+        border-radius:999px !important;
+        font-size:8.5px !important;
+        font-weight:900 !important;
+        white-space:nowrap !important;
+      }
+      #tab-reporte #div-resultado-reporte .reporte-tipo-campo {
+        background:#EAF4EE !important; color:#2F7D62 !important;
+      }
+      #tab-reporte #div-resultado-reporte .reporte-tipo-packing {
+        background:#EEF4FA !important; color:#3C6A95 !important;
+      }
+
       /* Ajuste visual final exclusivo del módulo Reporte */
       #tab-reporte #div-resultado-reporte {
         max-width: 1040px !important;
@@ -524,7 +540,14 @@
   #tab-dashboard .dash-estado-warning { color:#B47A17 !important; font-weight:900; }
   #tab-dashboard .dash-estado-danger { color:#B85A5A !important; font-weight:900; }
 </style>
-  </head>
+      <style id="hide-legacy-ventas-tab">
+      #tab-ventas { display:none !important; }
+    </style>
+    <style id="despachos-layout-fix">
+      #tab-despachos { margin:0 auto !important; position:relative !important; top:0 !important; transform:none !important; width:100% !important; max-width:1240px !important; box-sizing:border-box !important; }
+      #tab-despachos .despachos-subnav { margin-top:0 !important; }
+    </style>
+</head>
   <body class="dashboard-body">
 
     <!-- SIDEBAR LATERAL OSCURO -->
@@ -545,11 +568,8 @@
         <button class="menu-item" onclick="cambiarPestana(event, 'tab-cruce')">
           <span class="icon">🔄</span> Cruce de Stocks
         </button>
-        <button class="menu-item" onclick="cambiarPestana(event, 'tab-guias')">
-          <span class="icon">🚚</span> Guías Provisionales
-        </button>
-              <button class="menu-item" onclick="cambiarPestana(event, 'tab-ventas')">
-          <span class="icon">💰</span> Ventas
+        <button class="menu-item" id="menu-despachos" onclick="cambiarPestana(event, 'tab-despachos')">
+          <span class="icon">📦</span> Despachos
         </button>
 </nav>
       
@@ -912,7 +932,7 @@
                   <div class="subseccion-titulo">DESCARTE CAMPO</div>
                   <table class="tabla-reporte-datos" id="tabla-larama-campo">
                     <thead>
-                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Presentación</th><th>Código</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Código</th><th>Variedad</th><th>Tipo</th><th>Peso Neto (kg)</th></tr>
                     </thead>
                     <tbody>
                       <tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>
@@ -924,7 +944,7 @@
                   <div class="subseccion-titulo">DESCARTE PACKING</div>
                   <table class="tabla-reporte-datos" id="tabla-larama-packing">
                     <thead>
-                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Presentación</th><th>Código</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Código</th><th>Variedad</th><th>Tipo</th><th>Peso Neto (kg)</th></tr>
                     </thead>
                     <tbody>
                       <tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>
@@ -952,7 +972,7 @@
                   <div class="subseccion-titulo">DESCARTE CAMPO</div>
                   <table class="tabla-reporte-datos" id="tabla-aga-campo">
                     <thead>
-                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Presentación</th><th>Código</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Código</th><th>Variedad</th><th>Tipo</th><th>Peso Neto (kg)</th></tr>
                     </thead>
                     <tbody>
                       <tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>
@@ -964,7 +984,7 @@
                   <div class="subseccion-titulo">DESCARTE PACKING</div>
                   <table class="tabla-reporte-datos" id="tabla-aga-packing">
                     <thead>
-                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Presentación</th><th>Código</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Código</th><th>Variedad</th><th>Tipo</th><th>Peso Neto (kg)</th></tr>
                     </thead>
                     <tbody>
                       <tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>
@@ -992,7 +1012,7 @@
                   <div class="subseccion-titulo">DESCARTE CAMPO</div>
                   <table class="tabla-reporte-datos" id="tabla-arenuva-campo">
                     <thead>
-                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Presentación</th><th>Código</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                      <tr><th>Fecha de R.</th><th>Planta Origen</th><th>Código</th><th>Variedad</th><th>Tipo</th><th>Peso Neto (kg)</th></tr>
                     </thead>
                     <tbody>
                       <tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>
@@ -1004,7 +1024,7 @@
                   <div class="subseccion-titulo">DESCARTE PACKING</div>
                   <table class="tabla-reporte-datos" id="tabla-arenuva-packing">
                     <thead>
-                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Presentación</th><th>Código</th><th>Variedad</th><th>Peso Neto (kg)</th></tr>
+                      <tr><th>Fecha</th><th>Fundo Origen</th><th>Código</th><th>Variedad</th><th>Tipo</th><th>Peso Neto (kg)</th></tr>
                     </thead>
                     <tbody>
                       <tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>
@@ -1120,6 +1140,9 @@
 
         <!-- PESTAÑA 4: GUIAS PROVISIONALES -->
         <div id="tab-guias" class="tab-content">
+          <div id="guia-desde-despacho-toolbar" style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+            <button type="button" class="menu-item" style="width:auto;padding:8px 12px;background:#819DA7;color:#fff;border:0;border-radius:7px;font-weight:800;cursor:pointer;" onclick="volverADespachosDesdeGuia()">← VOLVER A DESPACHOS</button>
+          </div>
           <div class="report-filters" style="align-items: center; justify-content: space-between; display: flex; margin-bottom: 25px; gap: 20px;">
             <div style="display: flex; align-items: center; gap: 15px;">
               <label style="font-weight: bold; color: #819da7; margin: 0; font-size: 13px;">EMPRESA EMISORA</label>
@@ -1553,10 +1576,10 @@
   </div>
 
 </div>
-        </div>
+
         </div>
 
-        <?!= HtmlService.createHtmlOutputFromFile('Ventas').getContent(); ?>
+        <?!= HtmlService.createHtmlOutputFromFile('Despachos').getContent(); ?>
 
       </div>
     </div>
