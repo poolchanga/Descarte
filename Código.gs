@@ -1618,7 +1618,7 @@ function _catalogoClientesDespachos_() {
   for (var i = 1; i < datos.length; i++) {
     var id = String(datos[i][0] || "").trim();
     var cliente = String(datos[i][1] || "").trim();
-    var estado = String(datos[i][2] || "ACTIVO").trim().toUpperCase();
+    var estado = String(datos[i][4] || "ACTIVO").trim().toUpperCase();
     if (cliente && estado === "ACTIVO") lista.push({ id: id, cliente: cliente, estado: estado });
   }
   return lista;
@@ -1654,7 +1654,31 @@ function _buscarProductoDespacho_(codigo) {
 function _clienteActivoDespacho_(cliente) {
   var lista = _catalogoClientesDespachos_();
   var buscado = String(cliente || "").trim().toUpperCase();
-  for (var i = 0; i < lista.length; i++) if (lista[i].cliente.toUpperCase() === buscado) return lista[i].cliente;
+  if (!buscado) return "";
+
+  function normalizarNombreCliente_(valor) {
+    return String(valor || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[.,]/g, " ")
+      .replace(/\b(SAC|S\.A\.C|SA|S\.A|EIRL|E\.I\.R\.L)\b/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  var buscadoNormalizado = normalizarNombreCliente_(buscado);
+
+  // Primero se prioriza coincidencia exacta.
+  for (var i = 0; i < lista.length; i++) {
+    if (lista[i].cliente.toUpperCase() === buscado) return lista[i].cliente;
+  }
+
+  // Luego se acepta el mismo nombre con razón social/sufijo empresarial.
+  for (var j = 0; j < lista.length; j++) {
+    var clienteNormalizado = normalizarNombreCliente_(lista[j].cliente);
+    if (clienteNormalizado === buscadoNormalizado) return lista[j].cliente;
+  }
+
   return "";
 }
 
@@ -1907,21 +1931,274 @@ function _obtenerBaseDespachoInterna_(fecha, empresaFiltro, clienteFiltro) {
   return resultado;
 }
 
-function obtenerBaseDespachoPorFecha(token, fecha, empresaFiltro, cliente) {
+function obtenerDatosClienteDespacho(cliente) {
+  var buscado = String(cliente || '').trim();
+  if (!buscado) return { exito: false, mensaje: 'Cliente vacío.' };
+
+  var ss = SpreadsheetApp.openById('110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4');
+  var sheet = ss.getSheetByName('CLIENTES');
+  if (!sheet) return { exito: false, mensaje: 'No se encontró la pestaña CLIENTES.' };
+
+  var datos = sheet.getDataRange().getValues();
+  var buscadoUpper = buscado.toUpperCase();
+
+  function normalizarCliente_(valor) {
+    return String(valor || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[.,]/g, ' ')
+      .replace(/\b(SAC|S\.A\.C|SA|S\.A|EIRL|E\.I\.R\.L)\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Primero coincidencia exacta por razón social.
+  for (var i = 1; i < datos.length; i++) {
+    var clienteFila = String(datos[i][1] || '').trim();
+    var estado = String(datos[i][4] || 'ACTIVO').trim().toUpperCase();
+    if (estado !== 'ACTIVO') continue;
+    if (clienteFila.toUpperCase() === buscadoUpper) {
+      return {
+        exito: true,
+        cliente: clienteFila,
+        documento: String(datos[i][2] || '').trim(),
+        direccion: String(datos[i][3] || '').trim(),
+        condicionPago: String(datos[i][5] || 'CONTADO').trim() || 'CONTADO'
+      };
+    }
+  }
+
+  // Luego acepta nombres cortos como "GRUPO CLUNA" vs "GRUPO CLUNA E.I.R.L.".
+  var buscadoNormalizado = normalizarCliente_(buscado);
+  for (var j = 1; j < datos.length; j++) {
+    var clienteFila2 = String(datos[j][1] || '').trim();
+    var estado2 = String(datos[j][4] || 'ACTIVO').trim().toUpperCase();
+    if (estado2 !== 'ACTIVO') continue;
+    if (normalizarCliente_(clienteFila2) === buscadoNormalizado) {
+      return {
+        exito: true,
+        cliente: clienteFila2,
+        documento: String(datos[j][2] || '').trim(),
+        direccion: String(datos[j][3] || '').trim(),
+        condicionPago: String(datos[j][5] || 'CONTADO').trim() || 'CONTADO'
+      };
+    }
+  }
+
+  return { exito: false, mensaje: 'No se encontró el cliente en CLIENTES.' };
+}
+
+/**
+ * Obtiene la base disponible para despachar acumulando todo el rango.
+ * La consulta sigue siendo por cliente; la empresa solo limita los productos
+ * cuando el usuario selecciona una empresa concreta.
+ */
+function obtenerBaseDespachoPorFechas(token, fechaInicio, fechaFin, empresaFiltro, cliente) {
   _exigirAdminDespachos_(token);
-  var fechaTexto = String(fecha || '').trim();
+  var inicio = String(fechaInicio || '').trim();
+  var fin = String(fechaFin || '').trim();
   var clienteActivo = _clienteActivoDespacho_(cliente);
   if (!clienteActivo) throw new Error('Seleccione un cliente activo.');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTexto)) throw new Error('La fecha seleccionada no es válida.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fin)) {
+    throw new Error('El rango de fechas seleccionado no es válido.');
+  }
+  if (inicio > fin) throw new Error('La fecha de inicio no puede ser mayor que la fecha de fin.');
 
   return {
     exito: true,
     cliente: clienteActivo,
-    fecha: fechaTexto,
-    datos: _obtenerBaseDespachoInterna_(fechaTexto, String(empresaFiltro || 'TODAS').trim().toUpperCase(), clienteActivo)
+    fechaInicio: inicio,
+    fechaFin: fin,
+    datos: _obtenerBaseDespachoInternaPorRango_(inicio, fin, String(empresaFiltro || 'TODAS').trim().toUpperCase(), clienteActivo)
   };
 }
 
+/**
+ * Construye la base disponible consolidada de un rango de fechas.
+ * Disponible = kilos del reporte del rango.
+ * Despachado = kilos ya registrados en DESPACHOS dentro del mismo rango.
+ */
+function _obtenerBaseDespachoInternaPorRango_(fechaInicio, fechaFin, empresaFiltro, clienteFiltro) {
+  var reporte = obtenerDatosReportePorFechas(fechaInicio, fechaFin);
+  if (!reporte || !reporte.exito) {
+    throw new Error((reporte && reporte.mensaje) || 'No se pudo obtener el reporte del rango.');
+  }
+
+  var mapa = {};
+  (reporte.datos || []).forEach(function(r) {
+    var empresa = String(r.empresa || '').trim().toUpperCase();
+    if (empresaFiltro && empresaFiltro !== 'TODAS' && empresa !== empresaFiltro) return;
+
+    var tipo = String(r.presentacion || '').toUpperCase().indexOf('PACKING') !== -1 ? 'PACKING' : 'CAMPO';
+    var codigo = String(r.codigo || '').trim();
+    var variedad = String(r.variedad || '').trim();
+    var peso = Number(r.peso || 0);
+    if (!empresa || !codigo || !variedad || peso <= 0) return;
+
+    var item = { empresa: empresa, tipo: tipo, codigo: codigo, variedad: variedad, disponible: peso };
+    var clave = _agruparClaveDespacho_(item);
+
+    if (!mapa[clave]) {
+      mapa[clave] = {
+        empresa: empresa,
+        tipo: tipo,
+        codigo: codigo,
+        variedad: variedad,
+        disponible: 0,
+        despachado: 0,
+        saldo: 0
+      };
+    }
+    mapa[clave].disponible += peso;
+  });
+
+  var hoja = _obtenerHojaDespachos_();
+  var data = hoja.getDataRange().getValues();
+  var dInicio = _fechaFiltroDespacho_(fechaInicio);
+  var dFin = _fechaFiltroDespacho_(fechaFin);
+  var clienteUpper = String(clienteFiltro || 'TODOS').trim().toUpperCase();
+
+  for (var i = 1; i < data.length; i++) {
+    var fechaFila = _normalizarFechaDespacho_(data[i][1]);
+    if (!fechaFila) continue;
+    if (dInicio && fechaFila < dInicio) continue;
+    if (dFin && fechaFila > dFin) continue;
+
+    var empresaFila = String(data[i][2] || '').trim().toUpperCase();
+    if (empresaFiltro && empresaFiltro !== 'TODAS' && empresaFila !== empresaFiltro) continue;
+
+    var clienteFila = String(data[i][3] || '').trim();
+    if (clienteUpper !== 'TODOS' && clienteFila.toUpperCase() !== clienteUpper) continue;
+
+    var codigoFila = String(data[i][4] || '').trim();
+    var productoFila = String(data[i][5] || '').trim();
+    var kgFila = Number(data[i][6] || 0);
+    if (!empresaFila || !codigoFila || kgFila <= 0) continue;
+
+    var tipoFila = productoFila.toUpperCase().indexOf('PACKING') !== -1 ? 'PACKING' : 'CAMPO';
+    var variedadFila = productoFila
+      .replace(/^ARANDANO FRESCO\s*/i, '')
+      .replace(/\s*-\s*DESCARTE\s+(CAMPO|PACKING)\s*$/i, '')
+      .replace(/^OZBLU®?\s*/i, '')
+      .trim();
+
+    var itemFila = { empresa: empresaFila, tipo: tipoFila, codigo: codigoFila, variedad: variedadFila };
+    var claveFila = _agruparClaveDespacho_(itemFila);
+    if (!mapa[claveFila]) continue;
+    mapa[claveFila].despachado += kgFila;
+  }
+
+  var resultado = [];
+  Object.keys(mapa).forEach(function(clave) {
+    var item = mapa[clave];
+    item.saldo = Math.max(0, Number(item.disponible || 0) - Number(item.despachado || 0));
+    resultado.push(item);
+  });
+
+  resultado.sort(function(a, b) {
+    return (a.empresa + a.tipo + a.variedad + a.codigo).localeCompare(b.empresa + b.tipo + b.variedad + b.codigo);
+  });
+
+  return resultado;
+}
+
+// Compatibilidad con cualquier llamada anterior de una sola fecha.
+function obtenerBaseDespachoPorFecha(token, fecha, empresaFiltro, cliente) {
+  return obtenerBaseDespachoPorFechas(token, fecha, fecha, empresaFiltro, cliente);
+}
+
+function guardarDespachosMasivosPorRango(token, fechaInicio, fechaFin, cliente, registros) {
+  var sesion = _exigirAdminDespachos_(token);
+  var inicio = String(fechaInicio || '').trim();
+  var fin = String(fechaFin || '').trim();
+  var clienteActivo = _clienteActivoDespacho_(cliente);
+  var lista = Array.isArray(registros) ? registros : [];
+
+  if (!clienteActivo) return { exito: false, mensaje: 'Seleccione un cliente activo.' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fin)) return { exito: false, mensaje: 'El rango de fechas seleccionado no es válido.' };
+  if (inicio > fin) return { exito: false, mensaje: 'La fecha de inicio no puede ser mayor que la fecha de fin.' };
+  if (!lista.length) return { exito: false, mensaje: 'No hay cantidades para registrar.' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+
+  try {
+    var base = _obtenerBaseDespachoInternaPorRango_(inicio, fin, 'TODAS', clienteActivo);
+    var mapaBase = {};
+    base.forEach(function(item) {
+      mapaBase[_agruparClaveDespacho_(item)] = item;
+    });
+
+    var acumuladoSolicitud = {};
+    var registrosValidos = [];
+
+    lista.forEach(function(r) {
+      var empresa = String(r.empresa || '').trim().toUpperCase();
+      var tipo = String(r.tipo || '').trim().toUpperCase();
+      var codigo = String(r.codigo || '').trim();
+      var variedad = String(r.variedad || '').trim();
+      var kg = Number(r.kg || 0);
+      if (!empresa || !tipo || !codigo || !variedad || !(kg > 0)) return;
+
+      var clave = _agruparClaveDespacho_({ empresa: empresa, tipo: tipo, codigo: codigo, variedad: variedad });
+      if (!mapaBase[clave]) {
+        throw new Error('El producto ' + codigo + ' - ' + variedad + ' ya no está disponible en el rango seleccionado.');
+      }
+
+      acumuladoSolicitud[clave] = Number(acumuladoSolicitud[clave] || 0) + kg;
+      if (acumuladoSolicitud[clave] > Number(mapaBase[clave].saldo || 0) + 0.000001) {
+        throw new Error('La cantidad a despachar de ' + codigo + ' - ' + variedad + ' supera el saldo disponible de ' + Number(mapaBase[clave].saldo || 0).toFixed(3) + ' KG.');
+      }
+
+      registrosValidos.push({
+        empresa: empresa,
+        tipo: tipo,
+        codigo: codigo,
+        variedad: variedad,
+        kg: kg
+      });
+    });
+
+    if (!registrosValidos.length) return { exito: false, mensaje: 'No hay cantidades válidas para registrar.' };
+
+    var hoja = _obtenerHojaDespachos_();
+    var ahora = new Date();
+    var filas = [];
+    // El despacho queda registrado con la fecha final del rango seleccionado.
+    var prefijo = 'D-' + fin.replace(/-/g, '');
+    var baseId = ahora.getTime();
+
+    registrosValidos.forEach(function(r, index) {
+      filas.push([
+        prefijo + '-' + baseId + '-' + (index + 1),
+        fin,
+        r.empresa,
+        clienteActivo,
+        r.codigo,
+        'ARANDANO FRESCO ' + r.variedad + ' - DESCARTE ' + r.tipo,
+        r.kg,
+        sesion.usuario || 'ADMIN',
+        ahora,
+        ''
+      ]);
+    });
+
+    hoja.getRange(hoja.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
+
+    return {
+      exito: true,
+      mensaje: 'Despachos registrados correctamente para ' + clienteActivo + ' con fecha ' + fin.split('-').reverse().join('/') + '.',
+      registros: filas.length,
+      cliente: clienteActivo,
+      fechaInicio: inicio,
+      fechaFin: fin
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Compatibilidad con el guardado anterior de una sola fecha.
 function guardarDespachosMasivos(token, fecha, cliente, registros) {
   var sesion = _exigirAdminDespachos_(token);
   var fechaTexto = String(fecha || '').trim();
@@ -2008,12 +2285,25 @@ function guardarDespachosMasivos(token, fecha, cliente, registros) {
   }
 }
 
-function asignarCorrelativoDespacho(token, grupoDespacho, correlativo) {
+function asignarCorrelativoDespacho(token, grupoDespacho, empresaOcorrelativo, correlativoOpcional) {
   _exigirAdminDespachos_(token);
   var grupo = String(grupoDespacho || '').trim();
-  var nuevo = String(correlativo || '').trim();
+  var empresa = '';
+  var nuevo = '';
+
+  // Nueva firma: token, grupo, empresa, correlativo.
+  if (correlativoOpcional !== undefined) {
+    empresa = String(empresaOcorrelativo || '').trim().toUpperCase();
+    nuevo = String(correlativoOpcional || '').trim();
+  } else {
+    // Compatibilidad con la firma anterior.
+    nuevo = String(empresaOcorrelativo || '').trim();
+  }
 
   if (!grupo) return { exito: false, mensaje: 'No se identificó el despacho seleccionado.' };
+  if (correlativoOpcional !== undefined && ['AGA', 'LARAMA', 'ARENUVA'].indexOf(empresa) === -1) {
+    return { exito: false, mensaje: 'No se identificó una empresa válida para el despacho.' };
+  }
   if (!nuevo) return { exito: false, mensaje: 'Ingrese un correlativo.' };
 
   var lock = LockService.getScriptLock();
@@ -2026,19 +2316,23 @@ function asignarCorrelativoDespacho(token, grupoDespacho, correlativo) {
     for (var i = 1; i < data.length; i++) {
       var id = String(data[i][0] || '');
       var grupoFila = _grupoDespachoDesdeId_(id);
-      if (grupoFila === grupo) filasGrupo.push(i + 1);
+      var empresaFila = String(data[i][2] || '').trim().toUpperCase();
+      if (grupoFila === grupo && (!empresa || empresaFila === empresa)) filasGrupo.push(i + 1);
     }
 
-    if (!filasGrupo.length) return { exito: false, mensaje: 'No se encontró el despacho seleccionado.' };
+    if (!filasGrupo.length) return { exito: false, mensaje: 'No se encontró el despacho seleccionado' + (empresa ? ' para ' + empresa : '') + '.' };
 
     var buscado = nuevo.toUpperCase();
     for (var j = 1; j < data.length; j++) {
       var corrExistente = String(data[j][9] || '').trim().toUpperCase();
-      if (corrExistente && corrExistente === buscado) {
-        var grupoExistente = _grupoDespachoDesdeId_(data[j][0]);
-        if (grupoExistente !== grupo) {
-          return { exito: false, mensaje: 'El correlativo ' + nuevo + ' ya está asignado a otro despacho.' };
-        }
+      if (!corrExistente || corrExistente !== buscado) continue;
+
+      var grupoExistente = _grupoDespachoDesdeId_(data[j][0]);
+      var empresaExistente = String(data[j][2] || '').trim().toUpperCase();
+      var mismoDespacho = grupoExistente === grupo && (!empresa || empresaExistente === empresa);
+      if (!mismoDespacho) {
+        if (empresa && empresaExistente !== empresa) continue;
+        return { exito: false, mensaje: 'El correlativo ' + nuevo + ' ya está asignado a otro despacho' + (empresa ? ' de ' + empresa : '') + '.' };
       }
     }
 
@@ -2046,9 +2340,8 @@ function asignarCorrelativoDespacho(token, grupoDespacho, correlativo) {
       sheet.getRange(fila, 10).setValue(nuevo);
     });
 
-    return { exito: true, correlativo: nuevo, filas: filasGrupo.length };
+    return { exito: true, correlativo: nuevo, filas: filasGrupo.length, empresa: empresa || 'TODAS' };
   } finally {
     lock.releaseLock();
   }
 }
-

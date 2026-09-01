@@ -346,9 +346,10 @@
 
   <div id="despachos-vista-registro" class="despachos-view-panel">
   <div class="despachos-card">
-    <div class="despachos-card-title">REGISTRAR DESPACHO DESDE EL REPORTE DEL DÍA</div>
+    <div class="despachos-card-title">REGISTRAR DESPACHO DESDE EL RANGO DE FECHAS</div>
     <div class="despachos-grid">
-      <div class="despachos-field"><label>FECHA</label><input type="date" id="despacho-fecha-base"></div>
+      <div class="despachos-field"><label>FECHA INICIO</label><input type="date" id="despacho-fecha-base-inicio"></div>
+      <div class="despachos-field"><label>FECHA FIN</label><input type="date" id="despacho-fecha-base-fin"></div>
       <div class="despachos-field"><label>EMPRESA</label><select id="despacho-empresa-base"><option value="TODAS">TODAS LAS EMPRESAS</option><option value="LARAMA">LARAMA</option><option value="AGA">AGA</option><option value="ARENUVA">ARENUVA</option></select></div>
       <div class="despachos-field"><label>CLIENTE</label><select id="despacho-cliente-base"><option value="">-- Seleccione cliente --</option></select></div>
       <button type="button" class="despachos-btn despachos-btn-primary" onclick="cargarReporteDespacho()">📋 CARGAR REPORTE</button>
@@ -396,7 +397,7 @@
   </div>
 </div>
 
-<script>
+<script type="text/plain" data-despachos-backup="legacy-inline">
   var despachosCatalogosCargados = false;
   var despachoBaseActual = [];
 
