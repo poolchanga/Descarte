@@ -54,12 +54,19 @@
 
     if (idTab === 'tab-despachos') {
       var contenedorPrincipal = document.querySelector('.main-content');
-      if (contenedorPrincipal) contenedorPrincipal.scrollTop = 0;
+      var tabDespachos = document.getElementById('tab-despachos');
+      if (contenedorPrincipal && tabDespachos) {
+        requestAnimationFrame(function(){
+          var objetivo = Math.max(0, tabDespachos.offsetTop - 8);
+          contenedorPrincipal.scrollTop = objetivo;
+          window.scrollTo(0, 0);
+        });
+      }
       inicializarModuloDespachos();
-      requestAnimationFrame(function(){
-        var tabDespachos = document.getElementById('tab-despachos');
-        if (tabDespachos && contenedorPrincipal) contenedorPrincipal.scrollTop = Math.max(0, tabDespachos.offsetTop - 4);
-      });
+    }
+
+    if (idTab === 'tab-ventas') {
+      inicializarModuloVentas();
     }
   }
 
@@ -334,6 +341,74 @@
 
     document.getElementById('total-general-kilos').innerText = "0.000";
     datosReporteActual = [];
+  }
+
+
+  function copiarDatosReporte() {
+    if (!datosReporteActual || datosReporteActual.length === 0) {
+      alert("No hay datos cargados en el reporte para copiar.");
+      return;
+    }
+
+    var txt = "EMPRESA\tFECHA\tPLANTA/FUNDO ORIGEN\tCÓDIGO\tVARIEDAD\tTIPO DESCARTE\tPESO NETO (KG)\n";
+
+    datosReporteActual.forEach(function(r) {
+      var tipo = (r.presentacion || '').toUpperCase().includes('PACKING')
+        ? 'DESCARTE PACKING'
+        : 'DESCARTE CAMPO';
+
+      txt += (r.empresa || '') + "\t" +
+             (r.fecha || '') + "\t" +
+             (r.planta || '') + "\t" +
+             (r.codigo || '-') + "\t" +
+             (r.variedad || '') + "\t" +
+             tipo + "\t" +
+             (r.peso || 0) + "\n";
+    });
+
+    var copiarFallback = function() {
+      var temp = document.createElement("textarea");
+      temp.value = txt;
+      temp.setAttribute("readonly", "");
+      temp.style.position = "fixed";
+      temp.style.left = "-9999px";
+      document.body.appendChild(temp);
+      temp.select();
+      var exito = false;
+      try {
+        exito = document.execCommand("copy");
+      } catch (e) {
+        exito = false;
+      }
+      document.body.removeChild(temp);
+      return exito;
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(txt)
+        .then(function() {
+          alert("¡Datos del reporte copiados con éxito para Excel!");
+        })
+        .catch(function() {
+          if (copiarFallback()) {
+            alert("¡Datos del reporte copiados con éxito para Excel!");
+          } else {
+            alert("No se pudo copiar automáticamente. Intente nuevamente.");
+          }
+        });
+    } else if (copiarFallback()) {
+      alert("¡Datos del reporte copiados con éxito para Excel!");
+    } else {
+      alert("No se pudo copiar automáticamente. Intente nuevamente.");
+    }
+  }
+
+  function cerrarSesion() {
+    localStorage.removeItem('sesion_usuario');
+    localStorage.removeItem('sesion_empresa');
+    localStorage.removeItem('sesion_tipo');
+    localStorage.removeItem('sesion_token');
+    window.location.reload();
   }
 
 
