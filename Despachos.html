@@ -1,6 +1,6 @@
 <div id="tab-despachos" class="tab-content">
   <style>
-    #tab-despachos{padding:10px 12px 16px;box-sizing:border-box;max-width:1180px;margin:0 auto}
+    #tab-despachos{padding:18px;box-sizing:border-box}
     #tab-despachos .despachos-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}
     #tab-despachos .despachos-kicker{color:#5E8A8F;font-size:11px;font-weight:800;letter-spacing:.8px}
     #tab-despachos .despachos-head h2{margin:3px 0;color:#29484B;font-size:25px}
@@ -33,17 +33,6 @@
     #tab-despachos .despachos-total-row{display:flex;justify-content:flex-end;gap:24px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #DCE7E8;color:#526466;font-size:11px}
     #tab-despachos .despachos-total-row strong{color:#29484B}
     #tab-despachos .despachos-total-general{max-width:430px;margin:14px auto 0;background:#FFF2CC;border:2px solid #FFD966;border-radius:8px;padding:14px;text-align:center}
-    #tab-despachos .despacho-registro-card{margin-top:8px;border:1px solid #E1EAEB;border-radius:8px;background:#fff;padding:8px 10px}
-    #tab-despachos .despacho-registro-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
-    #tab-despachos .despacho-registro-meta{margin-top:2px;color:#7B8B8D;font-size:9px}
-    #tab-despachos .despacho-registro-actions{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
-    #tab-despachos .despacho-corr-chip{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:9px;font-weight:900}
-    #tab-despachos .despacho-corr-chip.asignado{background:#EAF4EE;color:#2F7D62}
-    #tab-despachos .despacho-corr-chip.sin-asignar{background:#FFF4D6;color:#9A6A00}
-    #tab-despachos .despacho-mini-btn{border:1px solid #CBD8D9;background:#fff;color:#38575A;border-radius:6px;padding:5px 8px;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}
-    #tab-despachos .despacho-mini-btn-primary{background:#2F7D62;color:#fff;border-color:#2F7D62}
-    #tab-despachos .despacho-mini-btn-guide{background:#EEF4FA;color:#3C6A95;border-color:#CFDDEB}
-
     #tab-despachos .despachos-total-general .label{color:#7F6000;font-size:11px;font-weight:900;letter-spacing:1px}
     #tab-despachos .despachos-total-general .value{color:#7F6000;font-size:25px;font-weight:900;margin-top:3px}
     #tab-despachos .despachos-resultados{display:grid;gap:12px}
@@ -101,7 +90,7 @@
     @media(max-width:650px){#tab-despachos .despachos-grid,#tab-despachos .despachos-clientes-resumen{grid-template-columns:1fr}}
 
     /* Ajustes visuales compactos del módulo Despachos */
-    #tab-despachos{padding:8px 10px 14px !important;max-width:1180px !important;margin:0 auto !important;width:100%;box-sizing:border-box}
+    #tab-despachos{padding:8px 10px 14px !important}
     #tab-despachos .despachos-head{margin-bottom:6px !important}
     #tab-despachos .despachos-head h2{font-size:20px !important;margin:2px 0 !important}
     #tab-despachos .despachos-head p{font-size:10px !important}
@@ -130,21 +119,205 @@
     #tab-despachos .despachos-empty{padding:14px !important;font-size:10px !important}
     #tab-despachos .consulta-filtros-compactos{display:grid !important;grid-template-columns:minmax(180px,1fr) auto !important;gap:7px !important;align-items:end !important}
     @media(max-width:650px){#tab-despachos .consulta-filtros-compactos{grid-template-columns:1fr !important}}
-    #tab-despachos .despachos-subnav{display:flex !important;align-items:center;gap:6px;background:#F6FAFA;border:1px solid #DCE7E8;border-radius:8px;padding:4px;margin:0 0 10px;position:relative;z-index:30;}
-    #tab-despachos .despachos-subnav-btn{border:1px solid transparent;background:transparent;color:#526C70;border-radius:6px;padding:7px 11px;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap;}
-    #tab-despachos .despachos-subnav-btn:hover{background:#EEF5F3;}
-    #tab-despachos .despachos-subnav-btn.active{background:#819DA7;color:#fff;border-color:#819DA7;}
-    #tab-despachos .despachos-vista-oculta{display:none !important;}
-    #tab-despachos .despachos-vista-activa{display:block !important;}
-    #tab-despachos #despachos-vista-consulta > .despachos-card:first-child{margin-bottom:7px;}
-    @media(max-width:650px){#tab-despachos .despachos-subnav{flex-wrap:wrap}#tab-despachos .despachos-subnav-btn{flex:1 1 30%;}}
-  </style>
 
-  <div class="despachos-subnav" role="tablist" aria-label="Secciones de Despachos">
-    <button type="button" class="despachos-subnav-btn active" data-vista="registro" onclick="cambiarVistaDespachos('registro')">📦 REGISTRAR</button>
-    <button type="button" class="despachos-subnav-btn" data-vista="consulta" onclick="cambiarVistaDespachos('consulta')">🔎 CONSULTAR</button>
-    <button type="button" class="despachos-subnav-btn" data-vista="guia" onclick="abrirGuiaGeneralDesdeDespachos()">📄 GUÍA PROVISIONAL</button>
-  </div>
+    /* PRESENTACION FINAL COMPACTA Y CENTRADA */
+    #tab-despachos {
+      width:100%;
+      max-width:1100px;
+      margin:0 auto !important;
+      padding:4px 8px 16px !important;
+      box-sizing:border-box;
+      align-self:center;
+    }
+    #tab-despachos .despachos-head {
+      max-width:1040px;
+      margin:0 auto 7px !important;
+    }
+    #tab-despachos .despachos-head h2 {font-size:20px !important;}
+    #tab-despachos .despachos-head p {font-size:10px !important;}
+    #tab-despachos > .despachos-card,
+    #tab-despachos > #despacho-base-contenedor,
+    #tab-despachos > #despachos-resultado-admin {
+      width:100%;
+      max-width:1040px;
+      margin-left:auto !important;
+      margin-right:auto !important;
+      box-sizing:border-box;
+    }
+    #tab-despachos .despachos-card {
+      padding:8px 10px !important;
+      margin-bottom:8px !important;
+      border-radius:8px !important;
+    }
+    #tab-despachos .despachos-grid {
+      grid-template-columns:1fr 1.15fr 1.15fr auto !important;
+      gap:7px !important;
+    }
+    #tab-despachos .despachos-card-title {font-size:9px !important;margin-bottom:5px !important;}
+    #tab-despachos .despachos-field label {font-size:8px !important;}
+    #tab-despachos .despachos-field input,
+    #tab-despachos .despachos-field select {
+      height:29px !important;
+      padding:5px 7px !important;
+      font-size:10px !important;
+    }
+    #tab-despachos .despachos-btn {height:29px !important;padding:5px 10px !important;font-size:9px !important;}
+    #tab-despachos .despachos-client-banner {padding:6px 8px !important;margin-bottom:6px !important;}
+    #tab-despachos .despachos-client-banner strong {font-size:10px !important;}
+    #tab-despachos .despachos-client-banner span {font-size:8px !important;}
+    #tab-despachos .despachos-toolbar {
+      position:sticky;
+      top:0;
+      padding:5px 7px !important;
+      margin-bottom:6px !important;
+      gap:5px !important;
+      border-radius:7px !important;
+    }
+    #tab-despachos .despachos-toolbar .toolbar-btn {padding:5px 8px !important;font-size:8px !important;}
+    #tab-despachos .despachos-toolbar .toolbar-state {display:none !important;}
+    #tab-despachos .despachos-toolbar .despachos-btn {margin-left:auto;}
+    #tab-despachos th {padding:5px 5px !important;font-size:7.5px !important;}
+    #tab-despachos td {padding:4px 5px !important;font-size:8.5px !important;}
+    #tab-despachos .input-despacho {width:82px !important;padding:4px 6px !important;font-size:10px !important;}
+    #tab-despachos .despachos-resultados {gap:7px !important;}
+    #tab-despachos .despacho-empresa {border-radius:8px !important;}
+    #tab-despachos .despacho-empresa-head {padding:7px 9px !important;font-size:11px !important;}
+    #tab-despachos .despacho-cliente {padding:7px 9px !important;}
+    #tab-despachos .despacho-cliente-title {font-size:9px !important;margin-bottom:4px !important;}
+    #tab-despachos .despachos-empty {padding:13px !important;font-size:10px !important;}
+    #tab-despachos .despachos-total-general {max-width:320px !important;margin:8px auto 0 !important;padding:8px !important;}
+    #tab-despachos .despachos-total-general .label {font-size:9px !important;}
+    #tab-despachos .despachos-total-general .value {font-size:19px !important;}
+    #tab-despachos .consulta-filtros-compactos {grid-template-columns:minmax(180px,300px) auto !important;gap:7px !important;justify-content:start !important;}
+    #tab-despachos .consulta-filtros-compactos .despachos-field {min-width:0;}
+    #tab-despachos .despachos-actions {display:none !important;}
+    @media(max-width:900px){#tab-despachos .despachos-grid{grid-template-columns:1fr 1fr !important;} #tab-despachos .despachos-grid .despachos-btn{width:100%;}}
+    @media(max-width:650px){#tab-despachos{padding-left:4px !important;padding-right:4px !important;} #tab-despachos .despachos-grid,#tab-despachos .consulta-filtros-compactos{grid-template-columns:1fr !important;} #tab-despachos .consulta-filtros-compactos{justify-content:stretch !important;}}
+
+    /* Ajuste final: módulo compacto y alineado al inicio del área útil */
+    #tab-despachos {
+      width: 100% !important;
+      max-width: 1040px !important;
+      margin: 0 auto !important;
+      padding: 0 8px 14px !important;
+      min-height: 0 !important;
+      align-self: flex-start !important;
+      position: relative !important;
+      top: 0 !important;
+      transform: none !important;
+      box-sizing: border-box !important;
+    }
+
+    #tab-despachos .despachos-head {
+      max-width: 100% !important;
+      margin: 0 0 7px !important;
+      padding: 0 !important;
+    }
+
+    #tab-despachos .despachos-head h2 {
+      font-size: 20px !important;
+      line-height: 1.1 !important;
+      margin: 1px 0 2px !important;
+    }
+
+    #tab-despachos .despachos-head p {
+      margin: 0 !important;
+      line-height: 1.2 !important;
+    }
+
+    #tab-despachos > .despachos-card,
+    #tab-despachos > #despacho-base-contenedor,
+    #tab-despachos > #despachos-resultado-admin {
+      max-width: 100% !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
+    #tab-despachos .despachos-card {
+      padding: 8px 10px !important;
+      margin-bottom: 8px !important;
+    }
+
+    #tab-despachos .despachos-grid {
+      grid-template-columns: 1fr 1.1fr 1.1fr auto !important;
+      gap: 7px !important;
+      align-items: end !important;
+    }
+
+    #tab-despachos .despachos-field input,
+    #tab-despachos .despachos-field select {
+      height: 30px !important;
+      padding: 5px 7px !important;
+      font-size: 10px !important;
+    }
+
+    #tab-despachos .despachos-btn {
+      height: 30px !important;
+      padding: 5px 10px !important;
+      font-size: 9px !important;
+    }
+
+    #tab-despachos .despachos-client-banner {
+      padding: 6px 8px !important;
+      margin-bottom: 6px !important;
+    }
+
+    #tab-despachos .despachos-table-wrap {
+      width: 100% !important;
+      overflow-x: auto !important;
+    }
+
+    #tab-despachos table {
+      min-width: 860px !important;
+    }
+
+    #tab-despachos th,
+    #tab-despachos td {
+      padding: 5px 6px !important;
+      font-size: 9px !important;
+    }
+
+    #tab-despachos .despachos-total-general {
+      max-width: 360px !important;
+      margin: 8px auto 0 !important;
+      padding: 8px !important;
+    }
+
+    #tab-despachos .despachos-total-general .value {
+      font-size: 20px !important;
+    }
+
+    /* La consulta queda compacta: fecha + botón, sin panel gigante */
+    #tab-despachos .consulta-filtros-compactos {
+      display: grid !important;
+      grid-template-columns: minmax(180px, 280px) auto !important;
+      gap: 7px !important;
+      align-items: end !important;
+      justify-content: start !important;
+    }
+
+    #tab-despachos .despachos-actions {
+      margin-top: 5px !important;
+    }
+
+    @media (max-width: 900px) {
+      #tab-despachos .despachos-grid { grid-template-columns: 1fr 1fr !important; }
+    }
+
+    @media (max-width: 650px) {
+      #tab-despachos { padding-left: 4px !important; padding-right: 4px !important; }
+      #tab-despachos .despachos-grid,
+      #tab-despachos .consulta-filtros-compactos { grid-template-columns: 1fr !important; }
+    }
+  /* Navegación interna: Registro / Consulta */
+    #tab-despachos .despachos-view-switch{display:flex;justify-content:center;gap:6px;margin:0 auto 8px;max-width:1040px}
+    #tab-despachos .despachos-view-tab{border:1px solid #CBD8D9;background:#F8FAFA;color:#38575A;border-radius:7px;padding:7px 14px;font-size:10px;font-weight:900;cursor:pointer}
+    #tab-despachos .despachos-view-tab.active{background:#819DA7;color:#fff;border-color:#819DA7}
+    #tab-despachos .despachos-view-panel{display:block}
+    #tab-despachos .despachos-view-panel.hidden{display:none !important}
+    #tab-despachos .consulta-panel-card{margin-top:0 !important}
+    #tab-despachos .consulta-panel-card .despachos-card-title{margin-bottom:5px !important}
+  </style>
 
   <div class="despachos-head">
     <div>
@@ -154,7 +327,12 @@
     </div>
   </div>
 
-  <div id="despachos-vista-registro" class="despachos-vista-activa">
+  <div class="despachos-view-switch" role="tablist" aria-label="Vistas de Despachos">
+    <button type="button" id="btn-vista-registro" class="despachos-view-tab active" onclick="cambiarVistaDespachos('registro')">✏️ REGISTRAR</button>
+    <button type="button" id="btn-vista-consulta" class="despachos-view-tab" onclick="cambiarVistaDespachos('consulta')">🔎 CONSULTAR</button>
+  </div>
+
+  <div id="despachos-vista-registro" class="despachos-view-panel">
   <div class="despachos-card">
     <div class="despachos-card-title">REGISTRAR DESPACHO DESDE EL REPORTE DEL DÍA</div>
     <div class="despachos-grid">
@@ -188,25 +366,25 @@
       <div class="fila-extra-table"><table><thead><tr><th>EMPRESA</th><th>TIPO</th><th>PRODUCTO / CÓDIGO</th><th>VARIEDAD</th><th>KG</th><th></th></tr></thead><tbody id="despacho-filas-extra-body"></tbody></table></div>
     </div>
   </div>
+
   </div>
 
-  <div id="despachos-vista-consulta" class="despachos-vista-oculta">
-  <div class="despachos-card">
-    <div class="despachos-card-title">CONSULTAR DESPACHOS</div>
-    <div class="consulta-filtros-compactos">
-      <div class="despachos-field"><label>FECHA</label><input type="date" id="despacho-filtro-fecha"></div>
-      <button type="button" class="despachos-btn despachos-btn-primary" onclick="buscarDespachosAdmin()">🔎 VER DESPACHOS</button>
+  <div id="despachos-vista-consulta" class="despachos-view-panel hidden">
+    <div class="despachos-card consulta-panel-card">
+      <div class="despachos-card-title">CONSULTAR DESPACHOS POR FECHA</div>
+      <div class="consulta-filtros-compactos">
+        <div class="despachos-field"><label>FECHA</label><input type="date" id="despacho-filtro-fecha"></div>
+        <button type="button" class="despachos-btn despachos-btn-primary" onclick="buscarDespachosAdmin()">🔎 VER DESPACHOS</button>
+      </div>
     </div>
-  </div>
 
-  <div id="despachos-resultado-admin" class="despachos-resultados"><div class="despachos-empty">Seleccione una fecha y presione VER DESPACHOS.</div></div>
+    <div id="despachos-resultado-admin" class="despachos-resultados"><div class="despachos-empty">Seleccione la fecha y presione VER DESPACHOS.</div></div>
   </div>
 </div>
 
 <script>
   var despachosCatalogosCargados = false;
   var despachoBaseActual = [];
-  var despachosConsultaActual = [];
 
   function _hoyDespachoInput(){
     var d=new Date();
@@ -224,34 +402,25 @@
   function cambiarVistaDespachos(vista){
     var registro=document.getElementById('despachos-vista-registro');
     var consulta=document.getElementById('despachos-vista-consulta');
-    if(registro)registro.className= vista==='registro' ? 'despachos-vista-activa' : 'despachos-vista-oculta';
-    if(consulta)consulta.className= vista==='consulta' ? 'despachos-vista-activa' : 'despachos-vista-oculta';
+    var btnRegistro=document.getElementById('btn-vista-registro');
+    var btnConsulta=document.getElementById('btn-vista-consulta');
+    var esConsulta=vista==='consulta';
 
-    document.querySelectorAll('#tab-despachos .despachos-subnav-btn').forEach(function(btn){
-      btn.classList.toggle('active', btn.getAttribute('data-vista')===vista);
-    });
-  }
+    if(registro)registro.classList.toggle('hidden',esConsulta);
+    if(consulta)consulta.classList.toggle('hidden',!esConsulta);
+    if(btnRegistro)btnRegistro.classList.toggle('active',!esConsulta);
+    if(btnConsulta)btnConsulta.classList.toggle('active',esConsulta);
 
-  function abrirGuiaGeneralDesdeDespachos(){
-    var btnGuia=document.createElement('button');
-    btnGuia.type='button';
-    cambiarPestana({currentTarget:btnGuia},'tab-guias');
-    if(typeof inicializarModuloGuias==='function')inicializarModuloGuias();
-    document.querySelectorAll('.menu-item').forEach(function(b){b.classList.remove('active');});
-    var menuDesp=document.getElementById('menu-despachos');
-    if(menuDesp)menuDesp.classList.add('active');
-    document.getElementById('txt-titulo-pestana').innerText='Despachos · Guía Provisional';
+    var principal=document.querySelector('.main-content');
+    if(principal)principal.scrollTop=0;
   }
 
   function inicializarModuloDespachos(){
-    cambiarVistaDespachos('registro');
     var hoy=_hoyDespachoInput();
     ['despacho-fecha-base','despacho-filtro-fecha'].forEach(function(id){
       var el=document.getElementById(id);
       if(el&&!el.value)el.value=hoy;
     });
-
-    if(despachosCatalogosCargados)return;
 
     var status=document.getElementById('despacho-form-status');
     if(status)status.textContent='Cargando clientes...';
@@ -264,36 +433,18 @@
         }
 
         var sc=document.getElementById('despacho-cliente-base');
-        var sf=document.getElementById('despacho-filtro-cliente');
-
-        if(sc) sc.innerHTML='<option value="">-- Seleccione cliente --</option>';
-        if(sf) sf.innerHTML='<option value="TODOS">TODOS LOS CLIENTES</option>';
-
-        var clientesUnicos={};
-        (r.clientes||[]).forEach(function(c){
-          var nombre=String(c.cliente||'').trim();
-          if(!nombre) return;
-          var clave=nombre.toUpperCase();
-          if(clientesUnicos[clave]) return;
-          clientesUnicos[clave]=true;
-
-          if(sc){
+        if(sc){
+          sc.innerHTML='<option value="">-- Seleccione cliente --</option>';
+          (r.clientes||[]).forEach(function(c){
             var a=document.createElement('option');
-            a.value=nombre;
-            a.textContent=nombre;
+            a.value=c.cliente;
+            a.textContent=c.cliente;
             sc.appendChild(a);
-          }
-
-          if(sf){
-            var b=document.createElement('option');
-            b.value=nombre;
-            b.textContent=nombre;
-            sf.appendChild(b);
-          }
-        });
+          });
+        }
 
         despachosCatalogosCargados=true;
-        if(status)status.textContent='';
+        if(status)status.textContent=(r.clientes||[]).length ? '' : 'No hay clientes activos configurados.';
       })
       .withFailureHandler(function(e){
         if(status)status.textContent='Error al cargar clientes: '+(e&&e.message?e.message:e);
@@ -566,20 +717,13 @@
 
   function renderizarDespachosAdmin(r){
     var cont=document.getElementById('despachos-resultado-admin');
-    if(!r||!r.exito||!r.datos||!r.datos.length){
-      despachosConsultaActual=[];
-      cont.innerHTML='<div class="despachos-empty">No hay despachos para los filtros seleccionados.</div>';
-      return;
-    }
+    if(!r||!r.exito||!r.datos||!r.datos.length){cont.innerHTML='<div class="despachos-empty">No hay despachos para los filtros seleccionados.</div>';return;}
 
-    despachosConsultaActual=r.datos.slice();
     var grupos={},resumenClientes={},totalGeneral=0;
     r.datos.forEach(function(x){
-      var grupo=x.grupoDespacho||x.id||('SIN-GRUPO-'+x.fecha+'-'+x.cliente+'-'+x.codigo);
       if(!grupos[x.empresa])grupos[x.empresa]={};
-      if(!grupos[x.empresa][x.cliente])grupos[x.empresa][x.cliente]={};
-      if(!grupos[x.empresa][x.cliente][grupo])grupos[x.empresa][x.cliente][grupo]=[];
-      grupos[x.empresa][x.cliente][grupo].push(x);
+      if(!grupos[x.empresa][x.cliente])grupos[x.empresa][x.cliente]=[];
+      grupos[x.empresa][x.cliente].push(x);
       if(!resumenClientes[x.cliente])resumenClientes[x.cliente]=0;
       resumenClientes[x.cliente]+=Number(x.kg||0);
       totalGeneral+=Number(x.kg||0);
@@ -590,30 +734,13 @@
       if(!grupos[emp])return;
       var totalEmpresa=0,clientesHtml='';
       Object.keys(grupos[emp]).sort().forEach(function(cliente){
-        Object.keys(grupos[emp][cliente]).sort().forEach(function(grupo){
-          var filas=grupos[emp][cliente][grupo],totalDespacho=0;
-          var corr=String(filas[0].correlativo||'').trim();
-          var fecha=filas[0].fecha||'';
-          var rows=filas.map(function(x){
-            var kg=Number(x.kg||0);
-            totalDespacho+=kg;
-            return '<tr><td>'+_escDespacho(x.fecha)+'</td><td style="font-weight:800;">'+_escDespacho(x.codigo)+'</td><td>'+_escDespacho(x.variedad||'-')+'</td><td>'+_escDespacho(x.tipo||'-')+'</td><td class="num">'+_kgDespacho(kg)+'</td></tr>';
-          }).join('');
-          totalEmpresa+=totalDespacho;
-          var corrTexto=corr?corr:'SIN ASIGNAR';
-          var botonCorr=corr
-            ? '<button type="button" class="despacho-mini-btn" onclick="editarCorrelativoDespacho('+JSON.stringify(grupo)+')">✏️ EDITAR CORRELATIVO</button>'
-            : '<button type="button" class="despacho-mini-btn despacho-mini-btn-primary" onclick="editarCorrelativoDespacho('+JSON.stringify(grupo)+')">＋ AGREGAR CORRELATIVO</button>';
-          var guiaBtn='<button type="button" class="despacho-mini-btn despacho-mini-btn-guide" onclick="abrirGuiaDesdeDespacho('+JSON.stringify(grupo)+')">📄 GUÍA PROVISIONAL</button>';
-          clientesHtml+='<div class="despacho-cliente despacho-registro-card">'+
-            '<div class="despacho-registro-head">'+
-              '<div><div class="despacho-cliente-title">CLIENTE: '+_escDespacho(cliente)+'</div><div class="despacho-registro-meta">FECHA: '+_escDespacho(fecha)+' · ID: '+_escDespacho(grupo)+'</div></div>'+
-              '<div class="despacho-registro-actions"><span class="despacho-corr-chip '+(corr?'asignado':'sin-asignar')+'">CORRELATIVO: '+_escDespacho(corrTexto)+'</span>'+botonCorr+guiaBtn+'</div>'+
-            '</div>'+
-            '<div class="despachos-table-wrap"><table><thead><tr><th>FECHA</th><th>CÓDIGO</th><th>VARIEDAD</th><th>TIPO</th><th>KG</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
-            '<div class="despacho-total">TOTAL DESPACHO: '+_kgDespacho(totalDespacho)+' KG</div>'+
-          '</div>';
-        });
+        var filas=grupos[emp][cliente],totalCliente=0;
+        var rows=filas.map(function(x){
+          totalCliente+=Number(x.kg||0);
+          return '<tr><td>'+_escDespacho(x.fecha)+'</td><td style="font-weight:800;">'+_escDespacho(x.codigo)+'</td><td>'+_escDespacho(x.variedad||'-')+'</td><td>'+_escDespacho(x.tipo||'-')+'</td><td class="num">'+_kgDespacho(x.kg)+'</td></tr>';
+        }).join('');
+        totalEmpresa+=totalCliente;
+        clientesHtml+='<div class="despacho-cliente"><div class="despacho-cliente-title">CLIENTE: '+_escDespacho(cliente)+'</div><div class="despachos-table-wrap"><table><thead><tr><th>FECHA</th><th>CÓDIGO</th><th>VARIEDAD</th><th>TIPO</th><th>KG</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="despacho-total">TOTAL '+_escDespacho(cliente)+': '+_kgDespacho(totalCliente)+' KG</div></div>';
       });
       html+='<div class="despacho-empresa"><div class="despacho-empresa-head"><span>'+emp+'</span><span>'+_kgDespacho(totalEmpresa)+' KG</span></div>'+clientesHtml+'</div>';
     });
@@ -623,81 +750,4 @@
     html+='</div><div class="despachos-total-general"><div class="label">TOTAL GENERAL DESPACHADO</div><div class="value">'+_kgDespacho(totalGeneral)+' KG</div></div></div>';
     cont.innerHTML=html;
   }
-
-  function editarCorrelativoDespacho(grupo){
-    var actual='';
-    for(var i=0;i<despachosConsultaActual.length;i++){
-      var filaGrupo=despachosConsultaActual[i].grupoDespacho||despachosConsultaActual[i].id||'';
-      if(String(filaGrupo)===String(grupo)){actual=String(despachosConsultaActual[i].correlativo||'').trim();break;}
-    }
-    var nuevo=window.prompt('Ingrese el correlativo del despacho:',actual);
-    if(nuevo===null)return;
-    nuevo=nuevo.trim();
-    if(!nuevo){alert('El correlativo no puede quedar vacío.');return;}
-    google.script.run
-      .withSuccessHandler(function(r){
-        if(!r||!r.exito){alert((r&&r.mensaje)||'No se pudo guardar el correlativo.');return;}
-        buscarDespachosAdmin();
-      })
-      .withFailureHandler(function(e){alert('Error al guardar el correlativo: '+(e&&e.message?e.message:e));})
-      .asignarCorrelativoDespacho(localStorage.getItem('sesion_token')||'',grupo,nuevo);
-  }
-
-  function abrirGuiaDesdeDespacho(grupo){
-    var filas=despachosConsultaActual.filter(function(x){return String(x.grupoDespacho||x.id||'')===String(grupo);});
-    if(!filas.length){alert('No se encontró el despacho seleccionado.');return;}
-
-    var emp=filas[0].empresa||'';
-    var cliente=filas[0].cliente||'';
-    var fecha=filas[0].fecha||'';
-    var btnGuia=document.createElement('button');
-    btnGuia.type='button';
-    cambiarPestana({currentTarget:btnGuia},'tab-guias');
-
-    var empresaSelect=document.getElementById('reg-empresa');
-    var clienteInput=document.getElementById('reg-cliente');
-    var fechaInput=document.getElementById('reg-fecha-emision');
-    var vencInput=document.getElementById('reg-fecha-vencimiento');
-    var tbody=document.getElementById('tbody-detalle-guias');
-
-    if(empresaSelect)empresaSelect.value=emp;
-    if(clienteInput)clienteInput.value=cliente;
-    if(fechaInput && fecha){var pf=fecha.split('/');if(pf.length===3)fechaInput.value=pf[2]+'-'+pf[1]+'-'+pf[0];}
-    if(vencInput && fechaInput)vencInput.value=fechaInput.value;
-    if(typeof actualizarEmpresaEmisora==='function')actualizarEmpresaEmisora();
-
-    if(tbody){
-      tbody.innerHTML='';
-      filas.forEach(function(x){
-        if(typeof agregarFilaProducto!=='function')return;
-        agregarFilaProducto();
-        var tr=tbody.lastElementChild;
-        if(!tr)return;
-        var inputs=tr.querySelectorAll('input');
-        if(inputs[0])inputs[0].value=x.codigo||'';
-        if(inputs[1])inputs[1].value=x.variedad||'';
-        if(inputs[2])inputs[2].value=Number(x.kg||0).toFixed(3);
-      });
-      if(typeof calcularTotalKilosEnVivo==='function')calcularTotalKilosEnVivo();
-    }
-
-    document.getElementById('txt-titulo-pestana').innerText='Despachos · Guía Provisional';
-    var menuDesp=document.getElementById('menu-despachos');
-    document.querySelectorAll('.menu-item').forEach(function(b){b.classList.remove('active');});
-    if(menuDesp)menuDesp.classList.add('active');
-  }
-
-  function volverADespachosDesdeGuia(){
-    var guia=document.getElementById('tab-guias');
-    var despacho=document.getElementById('tab-despachos');
-    var menuDesp=document.getElementById('menu-despachos');
-    if(guia)guia.classList.remove('active');
-    if(despacho)despacho.classList.add('active');
-    document.querySelectorAll('.menu-item').forEach(function(b){b.classList.remove('active');});
-    if(menuDesp)menuDesp.classList.add('active');
-    document.getElementById('txt-titulo-pestana').innerText='Módulo de Despachos';
-    var principal=document.querySelector('.main-content');
-    if(principal)principal.scrollTop=0;
-  }
-
 </script>

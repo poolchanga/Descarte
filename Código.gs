@@ -209,32 +209,13 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
       return { exito: true, datos: [], mensaje: "No se encontraron enlaces en el rango seleccionado." };
     }
     
-    // Cargar códigos desde BD-PRODUCTOS
+    // Cargar códigos desde BD-PRODUCTOS.
+    // La relación variedad/código se construye dinámicamente para que
+    // nuevas variedades agregadas a BD-PRODUCTOS no requieran cambios en código.
     var listaProductosBD = [];
+    var mapaCodigosProducto = {};
     var sheetProductos = ss.getSheetByName("BD-PRODUCTOS");
 
-    if (sheetProductos) {
-      var datosProductos = sheetProductos.getDataRange().getValues();
-
-      for (var p = 1; p < datosProductos.length; p++) {
-        var codigo = datosProductos[p][0]
-          ? datosProductos[p][0].toString().trim()
-          : "";
-
-        var descripcion = datosProductos[p][1]
-          ? datosProductos[p][1].toString().trim().toUpperCase()
-          : "";
-
-        if (codigo && descripcion) {
-          listaProductosBD.push({
-            codigo: codigo,
-            descripcion: descripcion
-          });
-        }
-      }
-    }
-
-    // Normalizar textos para relacionar la variedad con BD-PRODUCTOS
     var normalizarProducto = function(texto) {
       return String(texto || "")
         .toUpperCase()
@@ -243,34 +224,77 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
         .replace(/OZBLU®/g, "")
         .replace(/OZBLU/g, "")
         .replace(/ARANDANO FRESCO/g, "")
+        .replace(/GRANEL/g, "")
         .replace(/DESCARTE CAMPO/g, "")
         .replace(/DESCARTE PACKING/g, "")
         .replace(/DESCARTE/g, "")
-        .replace(/[-]/g, " ")
+        .replace(/CAMPO/g, "")
+        .replace(/PACKING/g, "")
+        .replace(/[^A-Z0-9]+/g, " ")
         .replace(/\s+/g, " ")
         .trim();
     };
 
+    var obtenerTipoDescarte = function(texto) {
+      var valor = String(texto || "").toUpperCase();
+      return valor.includes("PACKING") ? "DESCARTE PACKING" : "DESCARTE CAMPO";
+    };
+
+    if (sheetProductos) {
+      var datosProductos = sheetProductos.getDataRange().getValues();
+
+      for (var p = 1; p < datosProductos.length; p++) {
+        var codigo = datosProductos[p][0] != null
+          ? String(datosProductos[p][0]).trim()
+          : "";
+
+        var descripcion = datosProductos[p][1] != null
+          ? String(datosProductos[p][1]).trim().toUpperCase()
+          : "";
+
+        if (!codigo || !descripcion) continue;
+
+        var producto = {
+          codigo: codigo,
+          descripcion: descripcion,
+          tipo: obtenerTipoDescarte(descripcion),
+          variedadClave: normalizarProducto(descripcion)
+        };
+
+        listaProductosBD.push(producto);
+
+        // Guardar por tipo + variedad normalizada.
+        // Se usa la descripción completa de BD-PRODUCTOS como fuente única.
+        var claveProducto = producto.tipo + "|" + producto.variedadClave;
+        if (!mapaCodigosProducto[claveProducto]) {
+          mapaCodigosProducto[claveProducto] = codigo;
+        }
+      }
+    }
+
     var buscarCodigoProducto = function(variedadProducto, presentacionProducto) {
       var variedadNormalizada = normalizarProducto(variedadProducto);
-      var presentacionNormalizada = String(presentacionProducto || "").toUpperCase();
+      if (!variedadNormalizada) return "-";
 
-      if (!variedadNormalizada) {
-        return "-";
+      var tipoDescarte = obtenerTipoDescarte(presentacionProducto);
+      var claveDirecta = tipoDescarte + "|" + variedadNormalizada;
+
+      // Coincidencia directa: permite agregar nuevas variedades sin cambiar el código.
+      if (mapaCodigosProducto[claveDirecta]) {
+        return mapaCodigosProducto[claveDirecta];
       }
 
-      var tipoDescarte = presentacionNormalizada.includes("PACKING")
-        ? "DESCARTE PACKING"
-        : "DESCARTE CAMPO";
-
+      // Respaldo flexible para pequeñas diferencias de texto entre SISPACKING y BD.
       for (var p = 0; p < listaProductosBD.length; p++) {
-        var descripcionBD = listaProductosBD[p].descripcion;
+        var productoBD = listaProductosBD[p];
+        if (productoBD.tipo !== tipoDescarte) continue;
 
         if (
-          descripcionBD.includes(tipoDescarte) &&
-          normalizarProducto(descripcionBD).includes(variedadNormalizada)
+          productoBD.variedadClave === variedadNormalizada ||
+          productoBD.variedadClave.includes(variedadNormalizada) ||
+          variedadNormalizada.includes(productoBD.variedadClave)
         ) {
-          return listaProductosBD[p].codigo;
+          return productoBD.codigo;
         }
       }
 

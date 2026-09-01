@@ -54,19 +54,12 @@
 
     if (idTab === 'tab-despachos') {
       var contenedorPrincipal = document.querySelector('.main-content');
-      var tabDespachos = document.getElementById('tab-despachos');
-      if (contenedorPrincipal && tabDespachos) {
-        requestAnimationFrame(function(){
-          var objetivo = Math.max(0, tabDespachos.offsetTop - 8);
-          contenedorPrincipal.scrollTop = objetivo;
-          window.scrollTo(0, 0);
-        });
-      }
+      if (contenedorPrincipal) contenedorPrincipal.scrollTop = 0;
       inicializarModuloDespachos();
-    }
-
-    if (idTab === 'tab-ventas') {
-      inicializarModuloVentas();
+      requestAnimationFrame(function(){
+        var tabDespachos = document.getElementById('tab-despachos');
+        if (tabDespachos && contenedorPrincipal) contenedorPrincipal.scrollTop = Math.max(0, tabDespachos.offsetTop - 4);
+      });
     }
   }
 
@@ -132,6 +125,10 @@
 
       var tbodyCampo = document.querySelector('#tabla-' + empLower + '-campo tbody');
       var tbodyPacking = document.querySelector('#tabla-' + empLower + '-packing tbody');
+      var empresaCard = document.querySelector('#tabla-' + empLower + '-campo')?.closest('.empresa-card');
+      var tablaBoxCampo = tbodyCampo ? tbodyCampo.closest('.tabla-box') : null;
+      var tablaBoxPacking = tbodyPacking ? tbodyPacking.closest('.tabla-box') : null;
+      var empresaGrid = empresaCard ? empresaCard.querySelector('.empresa-grid') : null;
 
       var subtotalCampo = 0;
       var subtotalPacking = 0;
@@ -140,8 +137,9 @@
       if (tbodyCampo) {
         tbodyCampo.innerHTML = "";
         if (campoRows.length === 0) {
-          tbodyCampo.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>';
+          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'hidden';
         } else {
+          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'visible';
           var htmlCampo = "";
           campoRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
@@ -171,8 +169,9 @@
       if (tbodyPacking) {
         tbodyPacking.innerHTML = "";
         if (packingRows.length === 0) {
-          tbodyPacking.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:10px;">Sin datos</td></tr>';
+          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'hidden';
         } else {
+          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'visible';
           var htmlPacking = "";
           packingRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
@@ -198,7 +197,27 @@
         }
       }
 
-      // --- 3. ACTUALIZAR TOTAL EMPRESA ---
+      // --- 3. AJUSTAR DISTRIBUCIÓN VISUAL DE LA EMPRESA ---
+      if (empresaCard && empresaGrid) {
+        var hayCampo = campoRows.length > 0;
+        var hayPacking = packingRows.length > 0;
+        empresaCard.style.display = (hayCampo || hayPacking) ? '' : 'none';
+
+        empresaGrid.style.gridTemplateColumns = '';
+
+        if (hayCampo && hayPacking) {
+          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'visible';
+          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'visible';
+        } else if (hayCampo) {
+          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'visible';
+          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'hidden';
+        } else if (hayPacking) {
+          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'hidden';
+          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'visible';
+        }
+      }
+
+      // --- 4. ACTUALIZAR TOTAL EMPRESA ---
       var totalEmpresa = subtotalCampo + subtotalPacking;
       totalGeneralKilos += totalEmpresa;
 
@@ -208,7 +227,7 @@
       }
     });
 
-    // --- 4. ACTUALIZAR BANNER TOTAL GENERAL ---
+    // --- 5. ACTUALIZAR BANNER TOTAL GENERAL ---
     var elemTotalGeneral = document.getElementById('total-general-kilos');
     if (elemTotalGeneral) {
       elemTotalGeneral.innerText = totalGeneralKilos.toLocaleString('en-US', {minimumFractionDigits: 3, maximumFractionDigits: 3});
@@ -341,74 +360,6 @@
 
     document.getElementById('total-general-kilos').innerText = "0.000";
     datosReporteActual = [];
-  }
-
-
-  function copiarDatosReporte() {
-    if (!datosReporteActual || datosReporteActual.length === 0) {
-      alert("No hay datos cargados en el reporte para copiar.");
-      return;
-    }
-
-    var txt = "EMPRESA\tFECHA\tPLANTA/FUNDO ORIGEN\tCÓDIGO\tVARIEDAD\tTIPO DESCARTE\tPESO NETO (KG)\n";
-
-    datosReporteActual.forEach(function(r) {
-      var tipo = (r.presentacion || '').toUpperCase().includes('PACKING')
-        ? 'DESCARTE PACKING'
-        : 'DESCARTE CAMPO';
-
-      txt += (r.empresa || '') + "\t" +
-             (r.fecha || '') + "\t" +
-             (r.planta || '') + "\t" +
-             (r.codigo || '-') + "\t" +
-             (r.variedad || '') + "\t" +
-             tipo + "\t" +
-             (r.peso || 0) + "\n";
-    });
-
-    var copiarFallback = function() {
-      var temp = document.createElement("textarea");
-      temp.value = txt;
-      temp.setAttribute("readonly", "");
-      temp.style.position = "fixed";
-      temp.style.left = "-9999px";
-      document.body.appendChild(temp);
-      temp.select();
-      var exito = false;
-      try {
-        exito = document.execCommand("copy");
-      } catch (e) {
-        exito = false;
-      }
-      document.body.removeChild(temp);
-      return exito;
-    };
-
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(txt)
-        .then(function() {
-          alert("¡Datos del reporte copiados con éxito para Excel!");
-        })
-        .catch(function() {
-          if (copiarFallback()) {
-            alert("¡Datos del reporte copiados con éxito para Excel!");
-          } else {
-            alert("No se pudo copiar automáticamente. Intente nuevamente.");
-          }
-        });
-    } else if (copiarFallback()) {
-      alert("¡Datos del reporte copiados con éxito para Excel!");
-    } else {
-      alert("No se pudo copiar automáticamente. Intente nuevamente.");
-    }
-  }
-
-  function cerrarSesion() {
-    localStorage.removeItem('sesion_usuario');
-    localStorage.removeItem('sesion_empresa');
-    localStorage.removeItem('sesion_tipo');
-    localStorage.removeItem('sesion_token');
-    window.location.reload();
   }
 
 
@@ -2281,4 +2232,522 @@ function cerrarResultadoGuia() {
     resultado.style.display = 'none';
   }
 }
+
+// ============================================================
+// MÓDULO DESPACHOS
+// ============================================================
+
+  var despachosCatalogosCargados = false;
+  var despachoBaseActual = [];
+  var despachosConsultaActual = [];
+
+  function _hoyDespachoInput(){
+    var d=new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  function _escDespacho(v){
+    return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  function _kgDespacho(v){
+    return Number(v||0).toLocaleString('en-US',{minimumFractionDigits:3,maximumFractionDigits:3});
+  }
+
+  function cambiarVistaDespachos(vista){
+    var registro=document.getElementById('despachos-vista-registro');
+    var consulta=document.getElementById('despachos-vista-consulta');
+    if(registro)registro.className= vista==='registro' ? 'despachos-vista-activa' : 'despachos-vista-oculta';
+    if(consulta)consulta.className= vista==='consulta' ? 'despachos-vista-activa' : 'despachos-vista-oculta';
+
+    document.querySelectorAll('#tab-despachos .despachos-subnav-btn').forEach(function(btn){
+      btn.classList.toggle('active', btn.getAttribute('data-vista')===vista);
+    });
+  }
+
+  function abrirGuiaGeneralDesdeDespachos(){
+    var btnGuia=document.createElement('button');
+    btnGuia.type='button';
+    cambiarPestana({currentTarget:btnGuia},'tab-guias');
+    if(typeof inicializarModuloGuias==='function')inicializarModuloGuias();
+    document.querySelectorAll('.menu-item').forEach(function(b){b.classList.remove('active');});
+    var menuDesp=document.getElementById('menu-despachos');
+    if(menuDesp)menuDesp.classList.add('active');
+    document.getElementById('txt-titulo-pestana').innerText='Despachos · Guía Provisional';
+  }
+
+  function inicializarModuloDespachos(){
+    cambiarVistaDespachos('registro');
+    var hoy=_hoyDespachoInput();
+    ['despacho-fecha-base','despacho-filtro-fecha'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el&&!el.value)el.value=hoy;
+    });
+
+    if(despachosCatalogosCargados)return;
+
+    var status=document.getElementById('despacho-form-status');
+    if(status)status.textContent='Cargando clientes...';
+
+    google.script.run
+      .withSuccessHandler(function(r){
+        if(!r||!r.exito){
+          if(status)status.textContent=(r&&r.mensaje)||'No se pudieron cargar los clientes.';
+          return;
+        }
+
+        var sc=document.getElementById('despacho-cliente-base');
+        var sf=document.getElementById('despacho-filtro-cliente');
+
+        if(sc) sc.innerHTML='<option value="">-- Seleccione cliente --</option>';
+        if(sf) sf.innerHTML='<option value="TODOS">TODOS LOS CLIENTES</option>';
+
+        var clientesUnicos={};
+        (r.clientes||[]).forEach(function(c){
+          var nombre=String(c.cliente||'').trim();
+          if(!nombre) return;
+          var clave=nombre.toUpperCase();
+          if(clientesUnicos[clave]) return;
+          clientesUnicos[clave]=true;
+
+          if(sc){
+            var a=document.createElement('option');
+            a.value=nombre;
+            a.textContent=nombre;
+            sc.appendChild(a);
+          }
+
+          if(sf){
+            var b=document.createElement('option');
+            b.value=nombre;
+            b.textContent=nombre;
+            sf.appendChild(b);
+          }
+        });
+
+        despachosCatalogosCargados=true;
+        if(status)status.textContent='';
+      })
+      .withFailureHandler(function(e){
+        if(status)status.textContent='Error al cargar clientes: '+(e&&e.message?e.message:e);
+      })
+      .obtenerCatalogosDespachos(localStorage.getItem('sesion_token')||'');
+  }
+
+  function limpiarDespachoBase(){
+    document.getElementById('despacho-fecha-base').value=_hoyDespachoInput();
+    document.getElementById('despacho-empresa-base').value='TODAS';
+    document.getElementById('despacho-cliente-base').value='';
+    document.getElementById('despacho-base-contenedor').style.display='none';
+    document.getElementById('despacho-base-resultado').innerHTML='';
+    document.getElementById('despacho-form-status').textContent='';
+    despachoBaseActual=[];
+    var extraBody=document.getElementById('despacho-filas-extra-body');if(extraBody)extraBody.innerHTML='';
+    var extraWrap=document.getElementById('despacho-filas-extra');if(extraWrap)extraWrap.style.display='none';
+  }
+
+  function cargarReporteDespacho(){
+    var fecha=document.getElementById('despacho-fecha-base').value;
+    var empresa=document.getElementById('despacho-empresa-base').value;
+    var cliente=document.getElementById('despacho-cliente-base').value;
+    var status=document.getElementById('despacho-form-status');
+
+    if(!fecha){alert('Seleccione una fecha.');return;}
+    if(!cliente){alert('Seleccione un cliente.');return;}
+
+    status.textContent='🔍 Cargando reporte del día...';
+    document.getElementById('despacho-base-contenedor').style.display='block';
+    document.getElementById('despacho-base-resultado').innerHTML='<div class="despachos-empty">Consultando el reporte del '+fecha.split('-').reverse().join('/')+'...</div>';
+    document.getElementById('despacho-cliente-banner').textContent='CLIENTE: '+cliente;
+
+    google.script.run
+      .withSuccessHandler(function(r){
+        if(!r||!r.exito){
+          document.getElementById('despacho-base-resultado').innerHTML='<div class="despachos-empty">Error: '+_escDespacho((r&&r.mensaje)||'No se pudo cargar el reporte.')+'</div>';
+          status.textContent='';
+          return;
+        }
+
+        despachoBaseActual=r.datos||[];
+        if(empresa!=='TODAS')despachoBaseActual=despachoBaseActual.filter(function(x){return String(x.empresa||'').toUpperCase()===empresa;});
+
+        renderizarBaseDespacho(despachoBaseActual, cliente, fecha);
+        status.textContent='Reporte cargado correctamente.';
+      })
+      .withFailureHandler(function(e){
+        document.getElementById('despacho-base-resultado').innerHTML='<div class="despachos-empty">Error en el servidor: '+_escDespacho(e&&e.message?e.message:e)+'</div>';
+        status.textContent='';
+      })
+      .obtenerBaseDespachoPorFecha(localStorage.getItem('sesion_token')||'',fecha,empresa,cliente);
+  }
+
+  function renderizarBaseDespacho(r, cliente, fecha){
+    var cont=document.getElementById('despacho-base-resultado');
+    if(!r||!r.length){
+      cont.innerHTML='<div class="despachos-empty">No hay productos con kilos disponibles para despachar en la fecha seleccionada.</div>';
+      return;
+    }
+
+    var grupos={};
+    r.forEach(function(x){
+      var key=(x.empresa||'')+'|'+(x.tipo||'')+'|'+(x.codigo||'')+'|'+(x.variedad||'');
+      if(!grupos[key])grupos[key]={empresa:x.empresa,tipo:x.tipo,codigo:x.codigo,variedad:x.variedad,disponible:0,despachado:x.despachado||0,saldo:x.saldo||0};
+      grupos[key].disponible+=Number(x.disponible||0);
+      grupos[key].despachado=Number(x.despachado||0);
+      grupos[key].saldo=Number(x.saldo||0);
+    });
+
+    var agrupado=[];
+    Object.keys(grupos).forEach(function(k){agrupado.push(grupos[k]);});
+
+    var porEmpresa={};
+    agrupado.forEach(function(x){
+      if(!porEmpresa[x.empresa])porEmpresa[x.empresa]=[];
+      porEmpresa[x.empresa].push(x);
+    });
+
+    var totalDisponible=0,totalDespachado=0,totalSaldo=0;
+    var html='';
+    ['LARAMA','AGA','ARENUVA'].forEach(function(emp){
+      if(!porEmpresa[emp])return;
+      var filas=porEmpresa[emp];
+      var sumaDisp=0,sumaDesp=0,sumaSaldo=0;
+      var rows=filas.map(function(x,idx){
+        sumaDisp+=Number(x.disponible||0);
+        sumaDesp+=Number(x.despachado||0);
+        sumaSaldo+=Number(x.saldo||0);
+        totalDisponible+=Number(x.disponible||0);
+        totalDespachado+=Number(x.despachado||0);
+        totalSaldo+=Number(x.saldo||0);
+        var inputId='inp-despacho-'+idx+'-'+emp.toLowerCase();
+        var disabled=Number(x.saldo||0)<=0?' disabled':'';
+        var tipoCls=String(x.tipo||'').toUpperCase()==='PACKING'?'tipo-packing':'tipo-campo';
+        var keyData=encodeURIComponent(JSON.stringify({empresa:x.empresa,tipo:x.tipo,codigo:x.codigo,variedad:x.variedad}));
+        return '<tr data-despacho-key="'+keyData+'">'+
+          '<td><input type="checkbox" class="row-selector" aria-label="Seleccionar fila"></td>'+
+          '<td style="font-weight:800;">'+_escDespacho(x.codigo||'-')+'</td>'+
+          '<td>'+_escDespacho(x.variedad||'-')+'</td>'+
+          '<td><span class="tipo-chip '+tipoCls+'">'+_escDespacho(x.tipo||'-')+'</span></td>'+
+          '<td class="num">'+_kgDespacho(x.disponible)+'</td>'+
+          '<td class="num">'+_kgDespacho(x.despachado)+'</td>'+
+          '<td class="num '+(Number(x.saldo||0)>0?'saldo-ok':'saldo-zero')+'">'+_kgDespacho(x.saldo)+'</td>'+
+          '<td class="num"><input class="input-despacho" type="number" min="0" max="'+Number(x.saldo||0).toFixed(3)+'" step="0.001" value="0.000"'+disabled+' class="input-despacho locked" data-empresa="'+_escDespacho(x.empresa)+'" data-tipo="'+_escDespacho(x.tipo)+'" data-codigo="'+_escDespacho(x.codigo)+'" data-variedad="'+_escDespacho(x.variedad)+'" data-saldo="'+Number(x.saldo||0).toFixed(3)+'"></td>'+
+        '</tr>';
+      }).join('');
+
+      html+='<div class="despacho-empresa">'+
+        '<div class="despacho-empresa-head"><span>'+emp+'</span><span>DISPONIBLE: '+_kgDespacho(sumaDisp)+' KG</span></div>'+
+        '<div class="despachos-table-wrap"><table><thead><tr><th></th><th>CÓDIGO</th><th>VARIEDAD</th><th>TIPO</th><th>DISPONIBLE</th><th>YA DESPACHADO</th><th>SALDO</th><th>DESPACHAR (KG)</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+ 
+        '<div class="despachos-total-row"><span>Despachado: <strong>'+_kgDespacho(sumaDesp)+' KG</strong></span><span>Saldo: <strong>'+_kgDespacho(sumaSaldo)+' KG</strong></span></div>'+
+      '</div>';
+    });
+
+    html+='<div class="despachos-total-general"><div class="label">TOTAL DISPONIBLE · '+_escDespacho(cliente)+' · '+_escDespacho(fecha.split('-').reverse().join('/'))+'</div><div class="value">'+_kgDespacho(totalSaldo)+' KG</div></div>';
+    cont.innerHTML=html;
+    cont.querySelectorAll('.input-despacho').forEach(function(i){if(!i.disabled)i.disabled=true;i.classList.add('locked');i.addEventListener('input',actualizarTotalDespachoActual);});
+    actualizarTotalDespachoActual();
+    var btn=document.getElementById('btn-editar-pesos');if(btn)btn.textContent='✏️ EDITAR PESO';
+  }
+
+
+  function toggleEditarPesos(){
+    var inputs=document.querySelectorAll('#despacho-base-resultado .input-despacho');
+    if(!inputs.length)return;
+    var hayEditables=Array.prototype.some.call(inputs,function(i){return !i.disabled;});
+    inputs.forEach(function(i){if(Number(i.dataset.saldo||0)>0){i.disabled=hayEditables;i.classList.toggle('locked',hayEditables);}});
+    var btn=document.getElementById('btn-editar-pesos');
+    if(btn)btn.textContent=hayEditables?'✏️ EDITAR PESO':'🔒 BLOQUEAR PESO';
+  }
+
+  function asignarTodoDespacho(){
+    var inputs=document.querySelectorAll('#despacho-base-resultado .input-despacho');
+    if(!inputs.length){
+      alert('Primero cargue el reporte del día.');
+      return;
+    }
+
+    var total=0;
+    inputs.forEach(function(input){
+      if(Number(input.dataset.saldo||0)>0){
+        input.value=Number(input.dataset.saldo||0).toFixed(3);
+        total+=Number(input.dataset.saldo||0);
+      }else{
+        input.value='0.000';
+      }
+    });
+
+    actualizarTotalDespachoActual();
+    var status=document.getElementById('despacho-form-status');
+    if(status)status.textContent='✓ Se asignó todo el saldo disponible al cliente seleccionado: '+_kgDespacho(total)+' KG. Revise y registre el despacho.';
+  }
+
+  function agregarFilaDespacho(){
+    var body=document.getElementById('despacho-filas-extra-body');var wrap=document.getElementById('despacho-filas-extra');if(!body||!wrap)return;
+    var emp='<option value="LARAMA">LARAMA</option><option value="AGA">AGA</option><option value="ARENUVA">ARENUVA</option>';
+    var tipo='<option value="CAMPO">CAMPO</option><option value="PACKING">PACKING</option>';
+    var prod='<option value="">Seleccione producto</option>';
+    despachoBaseActual.forEach(function(x){prod+='<option value="'+_escDespacho(x.codigo)+'" data-variedad="'+_escDespacho(x.variedad)+'" data-empresa="'+_escDespacho(x.empresa)+'" data-tipo="'+_escDespacho(x.tipo)+'">'+_escDespacho(x.codigo+' — '+x.variedad+' · '+x.tipo)+'</option>';});
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><select class="extra-empresa">'+emp+'</select></td><td><select class="extra-tipo">'+tipo+'</select></td><td><select class="extra-producto">'+prod+'</select></td><td class="extra-variedad">-</td><td><input class="extra-kg" type="number" min="0" step="0.001" value="0.000"></td><td><button type="button" class="manual-row-remove" title="Borrar fila">✕</button></td>';
+    body.appendChild(tr);wrap.style.display='block';
+    tr.querySelector('.extra-kg').addEventListener('input',actualizarTotalDespachoActual);
+    actualizarTotalDespachoActual();
+    var sel=tr.querySelector('.extra-producto');
+    sel.addEventListener('change',function(){var o=sel.selectedOptions[0];tr.querySelector('.extra-variedad').textContent=o&&o.dataset.variedad?o.dataset.variedad:'-';if(o&&o.dataset.empresa)tr.querySelector('.extra-empresa').value=o.dataset.empresa;if(o&&o.dataset.tipo)tr.querySelector('.extra-tipo').value=o.dataset.tipo;});
+    tr.querySelector('.manual-row-remove').addEventListener('click',function(){tr.remove();if(!body.children.length)wrap.style.display='none';});
+  }
+
+  function borrarFilasDespacho(){
+    var seleccion=document.querySelectorAll('#despacho-base-resultado .row-selector:checked');
+    if(seleccion.length){
+      seleccion.forEach(function(cb){
+        var tr=cb.closest('tr');
+        var input=tr?tr.querySelector('.input-despacho'):null;
+        if(input) input.value='0.000';
+        cb.checked=false;
+      });
+    }
+
+    var body=document.getElementById('despacho-filas-extra-body');
+    var wrap=document.getElementById('despacho-filas-extra');
+    if(body&&body.lastElementChild&&!seleccion.length){
+      body.lastElementChild.remove();
+      if(!body.children.length&&wrap)wrap.style.display='none';
+    }
+
+    if(!seleccion.length && !(body&&body.lastElementChild)){
+      alert('Seleccione una fila para borrar.');
+      return;
+    }
+
+    actualizarTotalDespachoActual();
+  }
+
+  function actualizarTotalDespachoActual(){
+    var total=0;
+    document.querySelectorAll('#despacho-base-resultado .input-despacho').forEach(function(i){total+=Number(i.value||0);});
+    document.querySelectorAll('#despacho-filas-extra-body .extra-kg').forEach(function(i){total+=Number(i.value||0);});
+    var el=document.getElementById('despachos-toolbar-total');
+    if(el)el.textContent='Despacho actual: '+_kgDespacho(total)+' KG';
+  }
+
+  function guardarDespachosMasivosDesdeInterfaz(){
+    var fecha=document.getElementById('despacho-fecha-base').value;
+    var cliente=document.getElementById('despacho-cliente-base').value;
+    var empresaFiltro=document.getElementById('despacho-empresa-base').value;
+    var inputs=document.querySelectorAll('#despacho-base-resultado .input-despacho');
+    var registros=[];
+
+    inputs.forEach(function(input){
+      var kg=Number(input.value||0);
+      if(kg>0){
+        registros.push({
+          empresa:input.dataset.empresa,
+          tipo:input.dataset.tipo,
+          codigo:input.dataset.codigo,
+          variedad:input.dataset.variedad,
+          kg:kg
+        });
+      }
+    });
+
+    document.querySelectorAll('#despacho-filas-extra-body tr').forEach(function(tr){
+      var prod=tr.querySelector('.extra-producto');var opt=prod&&prod.selectedOptions?prod.selectedOptions[0]:null;var kg=Number((tr.querySelector('.extra-kg')||{}).value||0);
+      if(opt&&opt.value&&kg>0){
+        registros.push({empresa:(tr.querySelector('.extra-empresa')||{}).value||opt.dataset.empresa,tipo:(tr.querySelector('.extra-tipo')||{}).value||opt.dataset.tipo,codigo:opt.value,variedad:opt.dataset.variedad||'',kg:kg});
+      }
+    });
+
+    if(!fecha||!cliente){alert('Seleccione fecha y cliente antes de registrar.');return;}
+    if(empresaFiltro!=='TODAS' && registros.some(function(r){return r.empresa!==empresaFiltro;})){alert('Hay productos de otra empresa seleccionada. Vuelva a cargar el reporte.');return;}
+    if(!registros.length){alert('Ingrese al menos una cantidad mayor a 0 en DESPACHAR (KG).');return;}
+
+    var btns=document.querySelectorAll('#despacho-base-contenedor button');
+    btns.forEach(function(b){b.disabled=true;});
+    document.getElementById('despacho-form-status').textContent='💾 Registrando despachos...';
+
+    google.script.run
+      .withSuccessHandler(function(r){
+        btns.forEach(function(b){b.disabled=false;});
+        if(!r||!r.exito){
+          document.getElementById('despacho-form-status').textContent=(r&&r.mensaje)||'No se pudieron registrar los despachos.';
+          return;
+        }
+        document.getElementById('despacho-form-status').textContent='✓ '+r.mensaje+' · '+r.registros+' líneas registradas.';
+        cargarReporteDespacho();
+        buscarDespachosAdmin();
+      })
+      .withFailureHandler(function(e){
+        btns.forEach(function(b){b.disabled=false;});
+        document.getElementById('despacho-form-status').textContent='Error: '+(e&&e.message?e.message:e);
+      })
+      .guardarDespachosMasivos(localStorage.getItem('sesion_token')||'',fecha,cliente,registros);
+  }
+
+  function buscarDespachosAdmin(){
+    var fecha=document.getElementById('despacho-filtro-fecha').value;
+    var resultado=document.getElementById('despachos-resultado-admin');
+
+    if(!fecha){alert('Seleccione una fecha.');return;}
+    resultado.innerHTML='<div class="despachos-empty">🔎 Consultando despachos del '+fecha.split('-').reverse().join('/')+'...</div>';
+
+    google.script.run
+      .withSuccessHandler(renderizarDespachosAdmin)
+      .withFailureHandler(function(e){resultado.innerHTML='<div class="despachos-empty">Error: '+_escDespacho(e&&e.message?e.message:e)+'</div>';})
+      .obtenerDespachosAdmin(localStorage.getItem('sesion_token')||'',fecha,fecha,'TODAS','TODOS');
+  }
+
+  function renderizarDespachosAdmin(r){
+    var cont=document.getElementById('despachos-resultado-admin');
+    if(!r||!r.exito||!r.datos||!r.datos.length){
+      despachosConsultaActual=[];
+      cont.innerHTML='<div class="despachos-empty">No hay despachos para los filtros seleccionados.</div>';
+      return;
+    }
+
+    despachosConsultaActual=r.datos.slice();
+    var grupos={},resumenClientes={},totalGeneral=0;
+    r.datos.forEach(function(x){
+      var grupo=x.grupoDespacho||x.id||('SIN-GRUPO-'+x.fecha+'-'+x.cliente+'-'+x.codigo);
+      if(!grupos[x.empresa])grupos[x.empresa]={};
+      if(!grupos[x.empresa][x.cliente])grupos[x.empresa][x.cliente]={};
+      if(!grupos[x.empresa][x.cliente][grupo])grupos[x.empresa][x.cliente][grupo]=[];
+      grupos[x.empresa][x.cliente][grupo].push(x);
+      if(!resumenClientes[x.cliente])resumenClientes[x.cliente]=0;
+      resumenClientes[x.cliente]+=Number(x.kg||0);
+      totalGeneral+=Number(x.kg||0);
+    });
+
+    var html='';
+    ['LARAMA','AGA','ARENUVA'].forEach(function(emp){
+      if(!grupos[emp])return;
+      var totalEmpresa=0,clientesHtml='';
+      Object.keys(grupos[emp]).sort().forEach(function(cliente){
+        Object.keys(grupos[emp][cliente]).sort().forEach(function(grupo){
+          var filas=grupos[emp][cliente][grupo],totalDespacho=0;
+          var corr=String(filas[0].correlativo||'').trim();
+          var fecha=filas[0].fecha||'';
+          var rows=filas.map(function(x){
+            var kg=Number(x.kg||0);
+            totalDespacho+=kg;
+            return '<tr><td>'+_escDespacho(x.fecha)+'</td><td style="font-weight:800;">'+_escDespacho(x.codigo)+'</td><td>'+_escDespacho(x.variedad||'-')+'</td><td>'+_escDespacho(x.tipo||'-')+'</td><td class="num">'+_kgDespacho(kg)+'</td></tr>';
+          }).join('');
+          totalEmpresa+=totalDespacho;
+          var corrTexto=corr?corr:'SIN ASIGNAR';
+          var botonCorr=corr
+            ? '<button type="button" class="despacho-mini-btn" onclick="editarCorrelativoDespacho('+JSON.stringify(grupo)+')">✏️ EDITAR CORRELATIVO</button>'
+            : '<button type="button" class="despacho-mini-btn despacho-mini-btn-primary" onclick="editarCorrelativoDespacho('+JSON.stringify(grupo)+')">＋ AGREGAR CORRELATIVO</button>';
+          var guiaBtn='<button type="button" class="despacho-mini-btn despacho-mini-btn-guide" onclick="abrirGuiaDesdeDespacho('+JSON.stringify(grupo)+')">📄 GUÍA PROVISIONAL</button>';
+          clientesHtml+='<div class="despacho-cliente despacho-registro-card">'+
+            '<div class="despacho-registro-head">'+
+              '<div><div class="despacho-cliente-title">CLIENTE: '+_escDespacho(cliente)+'</div><div class="despacho-registro-meta">FECHA: '+_escDespacho(fecha)+' · ID: '+_escDespacho(grupo)+'</div></div>'+
+              '<div class="despacho-registro-actions"><span class="despacho-corr-chip '+(corr?'asignado':'sin-asignar')+'">CORRELATIVO: '+_escDespacho(corrTexto)+'</span>'+botonCorr+guiaBtn+'</div>'+
+            '</div>'+
+            '<div class="despachos-table-wrap"><table><thead><tr><th>FECHA</th><th>CÓDIGO</th><th>VARIEDAD</th><th>TIPO</th><th>KG</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+            '<div class="despacho-total">TOTAL DESPACHO: '+_kgDespacho(totalDespacho)+' KG</div>'+
+          '</div>';
+        });
+      });
+      html+='<div class="despacho-empresa"><div class="despacho-empresa-head"><span>'+emp+'</span><span>'+_kgDespacho(totalEmpresa)+' KG</span></div>'+clientesHtml+'</div>';
+    });
+
+    html+='<div class="despachos-card" style="margin-top:12px;"><div class="despachos-card-title">RESUMEN POR CLIENTE</div><div class="despachos-clientes-resumen">';
+    Object.keys(resumenClientes).sort().forEach(function(cliente){html+='<div class="cliente-resumen-card"><div class="nombre">'+_escDespacho(cliente)+'</div><div class="kg">'+_kgDespacho(resumenClientes[cliente])+' KG</div></div>';});
+    html+='</div><div class="despachos-total-general"><div class="label">TOTAL GENERAL DESPACHADO</div><div class="value">'+_kgDespacho(totalGeneral)+' KG</div></div></div>';
+    cont.innerHTML=html;
+  }
+
+  function editarCorrelativoDespacho(grupo){
+    var actual='';
+    for(var i=0;i<despachosConsultaActual.length;i++){
+      var filaGrupo=despachosConsultaActual[i].grupoDespacho||despachosConsultaActual[i].id||'';
+      if(String(filaGrupo)===String(grupo)){actual=String(despachosConsultaActual[i].correlativo||'').trim();break;}
+    }
+    var nuevo=window.prompt('Ingrese el correlativo del despacho:',actual);
+    if(nuevo===null)return;
+    nuevo=nuevo.trim();
+    if(!nuevo){alert('El correlativo no puede quedar vacío.');return;}
+    google.script.run
+      .withSuccessHandler(function(r){
+        if(!r||!r.exito){alert((r&&r.mensaje)||'No se pudo guardar el correlativo.');return;}
+        buscarDespachosAdmin();
+      })
+      .withFailureHandler(function(e){alert('Error al guardar el correlativo: '+(e&&e.message?e.message:e));})
+      .asignarCorrelativoDespacho(localStorage.getItem('sesion_token')||'',grupo,nuevo);
+  }
+
+  function abrirGuiaDesdeDespacho(grupo){
+    var filas=despachosConsultaActual.filter(function(x){return String(x.grupoDespacho||x.id||'')===String(grupo);});
+    if(!filas.length){alert('No se encontró el despacho seleccionado.');return;}
+
+    var emp=filas[0].empresa||'';
+    var cliente=filas[0].cliente||'';
+    var fecha=filas[0].fecha||'';
+    var btnGuia=document.createElement('button');
+    btnGuia.type='button';
+    cambiarPestana({currentTarget:btnGuia},'tab-guias');
+
+    var empresaSelect=document.getElementById('reg-empresa');
+    var clienteInput=document.getElementById('reg-cliente');
+    var fechaInput=document.getElementById('reg-fecha-emision');
+    var vencInput=document.getElementById('reg-fecha-vencimiento');
+    var tbody=document.getElementById('tbody-detalle-guias');
+
+    if(empresaSelect)empresaSelect.value=emp;
+    if(clienteInput)clienteInput.value=cliente;
+    if(fechaInput && fecha){var pf=fecha.split('/');if(pf.length===3)fechaInput.value=pf[2]+'-'+pf[1]+'-'+pf[0];}
+    if(vencInput && fechaInput)vencInput.value=fechaInput.value;
+    if(typeof actualizarEmpresaEmisora==='function')actualizarEmpresaEmisora();
+
+    if(tbody){
+      tbody.innerHTML='';
+      filas.forEach(function(x){
+        if(typeof agregarFilaProducto!=='function')return;
+        agregarFilaProducto();
+        var tr=tbody.lastElementChild;
+        if(!tr)return;
+        var inputs=tr.querySelectorAll('input');
+        if(inputs[0])inputs[0].value=x.codigo||'';
+        if(inputs[1])inputs[1].value=x.variedad||'';
+        if(inputs[2])inputs[2].value=Number(x.kg||0).toFixed(3);
+      });
+      if(typeof calcularTotalKilosEnVivo==='function')calcularTotalKilosEnVivo();
+    }
+
+    document.getElementById('txt-titulo-pestana').innerText='Despachos · Guía Provisional';
+    var menuDesp=document.getElementById('menu-despachos');
+    document.querySelectorAll('.menu-item').forEach(function(b){b.classList.remove('active');});
+    if(menuDesp)menuDesp.classList.add('active');
+  }
+
+  function volverADespachosDesdeGuia(){
+    var guia=document.getElementById('tab-guias');
+    var despacho=document.getElementById('tab-despachos');
+    var menuDesp=document.getElementById('menu-despachos');
+    if(guia)guia.classList.remove('active');
+    if(despacho)despacho.classList.add('active');
+    document.querySelectorAll('.menu-item').forEach(function(b){b.classList.remove('active');});
+    if(menuDesp)menuDesp.classList.add('active');
+    document.getElementById('txt-titulo-pestana').innerText='Módulo de Despachos';
+    var principal=document.querySelector('.main-content');
+    if(principal)principal.scrollTop=0;
+  }
+
+  // Exponer las funciones del módulo de Despachos en el ámbito global
+  // para que los botones inline sigan funcionando de forma fiable.
+  window.cambiarVistaDespachos = cambiarVistaDespachos;
+  window.abrirGuiaGeneralDesdeDespachos = abrirGuiaGeneralDesdeDespachos;
+  window.inicializarModuloDespachos = inicializarModuloDespachos;
+  window.cargarReporteDespacho = cargarReporteDespacho;
+  window.limpiarDespachoBase = limpiarDespachoBase;
+  window.asignarTodoDespacho = asignarTodoDespacho;
+  window.toggleEditarPesos = toggleEditarPesos;
+  window.agregarFilaDespacho = agregarFilaDespacho;
+  window.borrarFilasDespacho = borrarFilasDespacho;
+  window.guardarDespachosMasivosDesdeInterfaz = guardarDespachosMasivosDesdeInterfaz;
+  window.buscarDespachosAdmin = buscarDespachosAdmin;
+  window.editarCorrelativoDespacho = editarCorrelativoDespacho;
+  window.abrirGuiaDesdeDespacho = abrirGuiaDesdeDespacho;
+  window.volverADespachosDesdeGuia = volverADespachosDesdeGuia;
+
 </script>
