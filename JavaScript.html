@@ -66,6 +66,11 @@
   var datosReporteActual = [];
 
   function buscarReportes() {
+    var estadoInicial = document.getElementById('reporte-estado-inicial');
+    var contenedorReporte = document.getElementById('div-resultado-reporte');
+    if (estadoInicial) estadoInicial.style.display = 'none';
+    if (contenedorReporte) contenedorReporte.style.display = 'none';
+
     var fInicio = document.getElementById('fecha-inicio').value;
     var fFin = document.getElementById('fecha-fin').value;
     
@@ -92,11 +97,14 @@
         }
         
         datosReporteActual = respuesta.datos;
+        if (contenedorReporte) contenedorReporte.style.display = '';
         renderizarReporteVisual(respuesta.datos);
       })
       .withFailureHandler(function(err) {
         alert("Error en el servidor: " + err.message);
         document.getElementById('lbl-fecha-reporte').innerText = "--/--/----";
+        if (contenedorReporte) contenedorReporte.style.display = 'none';
+        if (estadoInicial) estadoInicial.style.display = '';
       })
       .obtenerDatosReportePorFechas(fInicio, fFin);
   }
@@ -137,9 +145,9 @@
       if (tbodyCampo) {
         tbodyCampo.innerHTML = "";
         if (campoRows.length === 0) {
-          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'hidden';
+          if (tablaBoxCampo) tablaBoxCampo.style.display = 'none';
         } else {
-          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'visible';
+          if (tablaBoxCampo) tablaBoxCampo.style.display = '';
           var htmlCampo = "";
           campoRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
@@ -169,9 +177,9 @@
       if (tbodyPacking) {
         tbodyPacking.innerHTML = "";
         if (packingRows.length === 0) {
-          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'hidden';
+          if (tablaBoxPacking) tablaBoxPacking.style.display = 'none';
         } else {
-          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'visible';
+          if (tablaBoxPacking) tablaBoxPacking.style.display = '';
           var htmlPacking = "";
           packingRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
@@ -203,17 +211,10 @@
         var hayPacking = packingRows.length > 0;
         empresaCard.style.display = (hayCampo || hayPacking) ? '' : 'none';
 
-        empresaGrid.style.gridTemplateColumns = '';
-
         if (hayCampo && hayPacking) {
-          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'visible';
-          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'visible';
-        } else if (hayCampo) {
-          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'visible';
-          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'hidden';
-        } else if (hayPacking) {
-          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'hidden';
-          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'visible';
+          empresaGrid.style.gridTemplateColumns = '';
+        } else if (hayCampo || hayPacking) {
+          empresaGrid.style.gridTemplateColumns = 'minmax(0, 1fr) 135px';
         }
       }
 
@@ -360,9 +361,81 @@
 
     document.getElementById('total-general-kilos').innerText = "0.000";
     datosReporteActual = [];
+
+    var estadoInicial = document.getElementById('reporte-estado-inicial');
+    var contenedorReporte = document.getElementById('div-resultado-reporte');
+    if (contenedorReporte) contenedorReporte.style.display = 'none';
+    if (estadoInicial) estadoInicial.style.display = '';
   }
 
 
+
+function copiarDatosReporte() {
+    if (!datosReporteActual || datosReporteActual.length === 0) {
+      alert("No hay datos cargados en el reporte para copiar.");
+      return;
+    }
+
+    var txt = "EMPRESA\tFECHA\tPLANTA/FUNDO ORIGEN\tCÓDIGO\tVARIEDAD\tTIPO DESCARTE\tPESO NETO (KG)\n";
+
+    datosReporteActual.forEach(function(r) {
+      var tipo = (r.presentacion || '').toUpperCase().includes('PACKING')
+        ? 'DESCARTE PACKING'
+        : 'DESCARTE CAMPO';
+
+      txt += (r.empresa || '') + "\t" +
+             (r.fecha || '') + "\t" +
+             (r.planta || '') + "\t" +
+             (r.codigo || '-') + "\t" +
+             (r.variedad || '') + "\t" +
+             tipo + "\t" +
+             (r.peso || 0) + "\n";
+    });
+
+    var copiarFallback = function() {
+      var temp = document.createElement("textarea");
+      temp.value = txt;
+      temp.setAttribute("readonly", "");
+      temp.style.position = "fixed";
+      temp.style.left = "-9999px";
+      document.body.appendChild(temp);
+      temp.select();
+      var exito = false;
+      try {
+        exito = document.execCommand("copy");
+      } catch (e) {
+        exito = false;
+      }
+      document.body.removeChild(temp);
+      return exito;
+    };
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(txt)
+        .then(function() {
+          alert("¡Datos del reporte copiados con éxito para Excel!");
+        })
+        .catch(function() {
+          if (copiarFallback()) {
+            alert("¡Datos del reporte copiados con éxito para Excel!");
+          } else {
+            alert("No se pudo copiar automáticamente. Intente nuevamente.");
+          }
+        });
+    } else if (copiarFallback()) {
+      alert("¡Datos del reporte copiados con éxito para Excel!");
+    } else {
+      alert("No se pudo copiar automáticamente. Intente nuevamente.");
+    }
+  }
+
+function cerrarSesion() {
+    localStorage.removeItem('sesion_usuario');
+    localStorage.removeItem('sesion_empresa');
+    localStorage.removeItem('sesion_tipo');
+    localStorage.removeItem('sesion_token');
+    window.location.reload();
+  }
   function copiarCruce() {
     if (datosCruceGlobal.length === 0) {
       alert("No hay datos cargados en el cruce para copiar.");
@@ -1375,6 +1448,11 @@ function reimprimirGuiaEncontrada() {
 
 
   function buscarCruceStocks() {
+    var estadoInicial = document.getElementById('cruce-estado-inicial');
+    var resultados = document.getElementById('cruce-resultados');
+    if (estadoInicial) estadoInicial.style.display = 'none';
+    if (resultados) resultados.style.display = 'none';
+
     var empresa = document.getElementById('cruce-empresa').value;
     var fInicio = document.getElementById('cruce-fecha-inicio').value;
     var fFin = document.getElementById('cruce-fecha-fin').value;
@@ -1411,6 +1489,8 @@ function reimprimirGuiaEncontrada() {
       })
       .withFailureHandler(function(err) {
         alert("Error en el servidor: " + err.message);
+        if (resultados) resultados.style.display = 'none';
+        if (estadoInicial) estadoInicial.style.display = '';
       })
       .obtenerCruceStocks(empresa, fInicio, fFin);
   }
@@ -1437,6 +1517,11 @@ function reimprimirGuiaEncontrada() {
     }
 
     datosCruceGlobal = [];
+
+    var estadoInicial = document.getElementById('cruce-estado-inicial');
+    var resultados = document.getElementById('cruce-resultados');
+    if (resultados) resultados.style.display = 'none';
+    if (estadoInicial) estadoInicial.style.display = '';
   }
 
 
@@ -2735,6 +2820,26 @@ function cerrarResultadoGuia() {
 
   // Exponer las funciones del módulo de Despachos en el ámbito global
   // para que los botones inline sigan funcionando de forma fiable.
+  // Exponer también las funciones generales usadas por botones inline.
+  window.cambiarPestana = cambiarPestana;
+  window.inicializarDashboard = inicializarDashboard;
+  window.buscarReportes = buscarReportes;
+  window.borrarReportes = borrarReportes;
+  window.copiarDatosReporte = copiarDatosReporte;
+  window.cerrarSesion = cerrarSesion;
+  window.copiarCruce = copiarCruce;
+  window.inicializarModuloGuias = inicializarModuloGuias;
+  window.actualizarEmpresaEmisora = actualizarEmpresaEmisora;
+  window.agregarFilaProducto = agregarFilaProducto;
+  window.escucharCambioCodigo = escucharCambioCodigo;
+  window.calcularTotalKilosEnVivo = calcularTotalKilosEnVivo;
+  window.removerFilaYRecalcular = removerFilaYRecalcular;
+  window.cargarProductosDesdeLinkGuia = cargarProductosDesdeLinkGuia;
+  window.procesarGuardadoGuia = procesarGuardadoGuia;
+  window.buscarGuiaPorCorrelativo = buscarGuiaPorCorrelativo;
+  window.reimprimirGuiaEncontrada = reimprimirGuiaEncontrada;
+  window.cerrarResultadoGuia = cerrarResultadoGuia;
+
   window.cambiarVistaDespachos = cambiarVistaDespachos;
   window.abrirGuiaGeneralDesdeDespachos = abrirGuiaGeneralDesdeDespachos;
   window.inicializarModuloDespachos = inicializarModuloDespachos;
