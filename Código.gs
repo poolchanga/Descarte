@@ -413,7 +413,7 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
     var listaProductosBD = [];
     var sheetProductos = ss.getSheetByName("BD-PRODUCTOS");
     if (sheetProductos) {
-      var datosProd = sheetProductos.getDataRange().getValues();
+      var datosProd = sheetProductos.getDataRange().getDisplayValues();
       for (var p = 1; p < datosProd.length; p++) {
         var codCelda = datosProd[p][0] ? datosProd[p][0].toString().trim().toUpperCase() : "";
         var descCelda = datosProd[p][1] ? datosProd[p][1].toString().trim().toUpperCase() : "";
@@ -422,6 +422,61 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
         }
       }
     }
+
+    // Normaliza únicamente el texto para comparar productos sin perder
+    // diferencias como ROSITA y ORGÁNICO ROSITA.
+    var normalizarProducto = function(texto) {
+      return String(texto || "")
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ARANDANO ORGANICO FRESCO/g, "ORGANICO")
+        .replace(/ARANDANO FRESCO/g, "")
+        .replace(/OZBLU®?/g, "")
+        .replace(/GRANEL/g, "")
+        .replace(/DESCARTE\s+(CAMPO|PACKING)/g, "")
+        .replace(/DESCARTE/g, "")
+        .replace(/CAMPO/g, "")
+        .replace(/PACKING/g, "")
+        .replace(/[-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    var obtenerVariedadDesdeBD = function(texto) {
+      var clave = normalizarProducto(texto);
+      if (!clave) return "";
+
+      for (var b = 0; b < listaProductosBD.length; b++) {
+        if (normalizarProducto(listaProductosBD[b].descripcion) === clave) {
+          return clave;
+        }
+      }
+      return "";
+    };
+
+    var buscarCodigoProductoCruce = function(variedadProducto, tipoDescarte) {
+      var variedadNormalizada = normalizarProducto(variedadProducto);
+      var tipoNormalizado = String(tipoDescarte || "").toUpperCase().includes("PACKING")
+        ? "DESCARTE PACKING"
+        : "DESCARTE CAMPO";
+
+      if (!variedadNormalizada) return "-";
+
+      for (var b = 0; b < listaProductosBD.length; b++) {
+        var productoBD = listaProductosBD[b];
+        var descripcionBD = productoBD.descripcion;
+        var tipoBD = descripcionBD.includes("DESCARTE PACKING")
+          ? "DESCARTE PACKING"
+          : "DESCARTE CAMPO";
+
+        if (tipoBD === tipoNormalizado && normalizarProducto(descripcionBD) === variedadNormalizada) {
+          return productoBD.codigo;
+        }
+      }
+
+      return "-";
+    };
 
     // --- 1. OBTENER ENLACES DE SISPACKING (HOJA LINK-FECHA) ---
     var sheetLinks = ss.getSheetByName("LINK-FECHA");
@@ -474,6 +529,7 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
 
     // --- 2. ACUMULAR KILOS DE SISPACKING ---
     var mapaSispacking = {};
+    var mapaNombreVariedadCruce = {};
     enlacesAProcesar.forEach(function(url) {
       try {
         var match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -492,7 +548,10 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
               var varC = subDatos[j][9] ? subDatos[j][9].toString().trim().toUpperCase() : "";
               var pesoC = parseFloat(subDatos[j][12]) || 0;
               if (pesoC > 0) {
-                var llaveC = fTxtC + "|" + varC + "|CAMPO";
+                var claveVariedadC = normalizarProducto(varC);
+                if (!claveVariedadC) continue;
+                var llaveC = fTxtC + "|" + claveVariedadC + "|CAMPO";
+                if (!mapaNombreVariedadCruce[claveVariedadC]) mapaNombreVariedadCruce[claveVariedadC] = varC;
                 mapaSispacking[llaveC] = (mapaSispacking[llaveC] || 0) + pesoC;
               }
             }
@@ -507,7 +566,10 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
               var varP = subDatos[j][2] ? subDatos[j][2].toString().trim().toUpperCase() : "";
               var pesoP = parseFloat(subDatos[j][9]) || 0;
               if (pesoP > 0) {
-                var llaveP = fTxtP + "|" + varP + "|PACKING";
+                var claveVariedadP = normalizarProducto(varP);
+                if (!claveVariedadP) continue;
+                var llaveP = fTxtP + "|" + claveVariedadP + "|PACKING";
+                if (!mapaNombreVariedadCruce[claveVariedadP]) mapaNombreVariedadCruce[claveVariedadP] = varP;
                 mapaSispacking[llaveP] = (mapaSispacking[llaveP] || 0) + pesoP;
               }
             }
@@ -544,11 +606,20 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
             }
 
             tipoGrupoActual = colB.includes("PACKING") ? "PACKING" : "CAMPO";
-            
-            if (colB.includes("ROSITA")) {
-              variedadActual = "ROSITA";
+
+            // La variedad se obtiene primero desde BD-PRODUCTOS para conservar
+            // diferencias reales como ROSITA y ORGÁNICO ROSITA.
+            var variedadBD = obtenerVariedadDesdeBD(colB);
+            if (variedadBD) {
+              variedadActual = variedadBD;
+            } else if (colB.includes("ROSITA")) {
+              variedadActual = colB.includes("ORGÁNICO") || colB.includes("ORGANICO")
+                ? "ORGÁNICO ROSITA"
+                : "ROSITA";
             } else if (colB.includes("RAYMI")) {
-              variedadActual = "RAYMI BLU";
+              variedadActual = colB.includes("ORGÁNICO") || colB.includes("ORGANICO")
+                ? "ORGÁNICO RAYMI BLU"
+                : "RAYMI BLU";
             } else if (colB.includes("DINA")) {
               variedadActual = "OZBLU® DINA";
             } else if (colB.includes("CAROLINA")) {
@@ -564,6 +635,9 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
             } else {
               var limpiar = colB
                 .replace("ARÁNDANO FRESCO", "")
+                .replace("ARÁNDANO ORGÁNICO FRESCO", "")
+                .replace("ARANDANO FRESCO", "")
+                .replace("ARANDANO ORGANICO FRESCO", "")
                 .replace("- DESCARTE CAMPO", "")
                 .replace("- DESCARTE PACKING", "")
                 .replace("CAMPO", "")
@@ -572,7 +646,9 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
               if (limpiar) variedadActual = limpiar;
             }
 
-            llaveStockActual = variedadActual + "|" + tipoGrupoActual;
+            var claveVariedadStock = normalizarProducto(variedadActual);
+            llaveStockActual = claveVariedadStock + "|" + tipoGrupoActual;
+            if (claveVariedadStock && !mapaNombreVariedadCruce[claveVariedadStock]) mapaNombreVariedadCruce[claveVariedadStock] = variedadActual;
             ultimoValorColJ = null; // Reiniciar para el nuevo bloque
           }
         }
@@ -597,8 +673,12 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
               var anio = fObjS.getFullYear();
               var fTxtS = dia + "/" + mes + "/" + anio;
               
-              var llaveS = fTxtS + "|" + variedadActual + "|" + tipoGrupoActual;
-              mapaSap[llaveS] = (mapaSap[llaveS] || 0) + cantidadS;
+              var claveVariedadS = normalizarProducto(variedadActual);
+              if (claveVariedadS) {
+                var llaveS = fTxtS + "|" + claveVariedadS + "|" + tipoGrupoActual;
+                if (!mapaNombreVariedadCruce[claveVariedadS]) mapaNombreVariedadCruce[claveVariedadS] = variedadActual;
+                mapaSap[llaveS] = (mapaSap[llaveS] || 0) + cantidadS;
+              }
             }
           }
         }
@@ -619,7 +699,8 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
     todasLasLlaves.forEach(function(llave) {
       var partes = llave.split("|");
       var fecha = partes[0];
-      var varNombre = partes[1];
+      var claveVariedad = partes[1];
+      var varNombre = mapaNombreVariedadCruce[claveVariedad] || claveVariedad;
       var tipo = partes[2];
       
       var totalSispacking = mapaSispacking[llave] || 0;
@@ -630,16 +711,7 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
         diferencia = 0;
       }
 
-      var codigoProducto = "-";
-      var nombreBusqueda = varNombre.trim().toUpperCase();
-      
-      for (var b = 0; b < listaProductosBD.length; b++) {
-        var descBD = listaProductosBD[b].descripcion;
-        if (descBD.indexOf(nombreBusqueda) !== -1 || nombreBusqueda.indexOf(descBD) !== -1) {
-          codigoProducto = listaProductosBD[b].codigo;
-          break;
-        }
-      }
+      var codigoProducto = buscarCodigoProductoCruce(varNombre, tipo);
       
       listaCruce.push({
         empresa: empresaSeleccionada.toUpperCase(),
@@ -665,16 +737,7 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
       var p = key.split("|");
       var vNombre = p[0];
       var tGrupo = p[1];
-      var codP = "-";
-      var nBusq = vNombre.trim().toUpperCase();
-
-      for (var b2 = 0; b2 < listaProductosBD.length; b2++) {
-        var descBD2 = listaProductosBD[b2].descripcion;
-        if (descBD2.indexOf(nBusq) !== -1 || nBusq.indexOf(descBD2) !== -1) {
-          codP = listaProductosBD[b2].codigo;
-          break;
-        }
-      }
+      var codP = buscarCodigoProductoCruce(vNombre, tGrupo);
 
       listaStockTotal.push({
         empresa: empresaSeleccionada.toUpperCase(),
@@ -1890,9 +1953,6 @@ function _obtenerBaseDespachoInterna_(fecha, empresaFiltro, clienteFiltro) {
     var empresaFila = String(data[i][2] || '').trim().toUpperCase();
     if (empresaFiltro && empresaFiltro !== 'TODAS' && empresaFila !== empresaFiltro) continue;
 
-    var clienteFila = String(data[i][3] || '').trim();
-    if (clienteFiltro && String(clienteFiltro).trim().toUpperCase() !== 'TODOS' && clienteFila.toUpperCase() !== String(clienteFiltro).trim().toUpperCase()) continue;
-
     var codigoFila = String(data[i][4] || '').trim();
     var productoFila = String(data[i][5] || '').trim();
     var kgFila = Number(data[i][6] || 0);
@@ -1990,8 +2050,8 @@ function obtenerDatosClienteDespacho(cliente) {
 
 /**
  * Obtiene la base disponible para despachar acumulando todo el rango.
- * La consulta sigue siendo por cliente; la empresa solo limita los productos
- * cuando el usuario selecciona una empresa concreta.
+ * El saldo de cada producto es global y no depende del cliente seleccionado;
+ * la empresa solo limita los productos cuando el usuario selecciona una empresa concreta.
  */
 function obtenerBaseDespachoPorFechas(token, fechaInicio, fechaFin, empresaFiltro, cliente) {
   _exigirAdminDespachos_(token);
@@ -2066,9 +2126,6 @@ function _obtenerBaseDespachoInternaPorRango_(fechaInicio, fechaFin, empresaFilt
 
     var empresaFila = String(data[i][2] || '').trim().toUpperCase();
     if (empresaFiltro && empresaFiltro !== 'TODAS' && empresaFila !== empresaFiltro) continue;
-
-    var clienteFila = String(data[i][3] || '').trim();
-    if (clienteUpper !== 'TODOS' && clienteFila.toUpperCase() !== clienteUpper) continue;
 
     var codigoFila = String(data[i][4] || '').trim();
     var productoFila = String(data[i][5] || '').trim();

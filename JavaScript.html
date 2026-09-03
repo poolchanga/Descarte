@@ -2519,20 +2519,8 @@ function cerrarResultadoGuia() {
       return;
     }
 
-    var grupos={};
-    r.forEach(function(x){
-      var key=(x.empresa||'')+'|'+(x.tipo||'')+'|'+(x.codigo||'')+'|'+(x.variedad||'');
-      if(!grupos[key])grupos[key]={empresa:x.empresa,tipo:x.tipo,codigo:x.codigo,variedad:x.variedad,disponible:0,despachado:x.despachado||0,saldo:x.saldo||0};
-      grupos[key].disponible+=Number(x.disponible||0);
-      grupos[key].despachado=Number(x.despachado||0);
-      grupos[key].saldo=Number(x.saldo||0);
-    });
-
-    var agrupado=[];
-    Object.keys(grupos).forEach(function(k){agrupado.push(grupos[k]);});
-
     var porEmpresa={};
-    agrupado.forEach(function(x){
+    r.forEach(function(x){
       if(!porEmpresa[x.empresa])porEmpresa[x.empresa]=[];
       porEmpresa[x.empresa].push(x);
     });
@@ -2798,9 +2786,9 @@ function cerrarResultadoGuia() {
           totalEmpresa+=totalDespacho;
           var corrTexto=corr?corr:'SIN ASIGNAR';
           var botonCorr=corr
-            ? '<button type="button" class="despacho-mini-btn" onclick="editarCorrelativoDespacho('+JSON.stringify(grupo)+','+JSON.stringify(emp)+')">✏️ EDITAR CORRELATIVO</button>'
-            : '<button type="button" class="despacho-mini-btn despacho-mini-btn-primary" onclick="editarCorrelativoDespacho('+JSON.stringify(grupo)+','+JSON.stringify(emp)+')">＋ AGREGAR CORRELATIVO</button>';
-          var guiaBtn='<button type="button" class="despacho-mini-btn despacho-mini-btn-guide" onclick="abrirGuiaDesdeDespacho('+JSON.stringify(grupo)+','+JSON.stringify(emp)+')">📄 GUÍA PROVISIONAL</button>';
+            ? '<button type="button" class="despacho-mini-btn" onclick="editarCorrelativoDespacho('+JSON.stringify(grupo).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+','+JSON.stringify(emp).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+')">✏️ EDITAR CORRELATIVO</button>'
+            : '<button type="button" class="despacho-mini-btn despacho-mini-btn-primary" onclick="editarCorrelativoDespacho('+JSON.stringify(grupo).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+','+JSON.stringify(emp).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+')">＋ AGREGAR CORRELATIVO</button>';
+          var guiaBtn='<button type="button" class="despacho-mini-btn despacho-mini-btn-guide" onclick="abrirGuiaDesdeDespacho('+JSON.stringify(grupo).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+','+JSON.stringify(emp).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+')">📄 GUÍA PROVISIONAL</button>';
           clientesHtml+='<div class="despacho-cliente despacho-registro-card">'+
             '<div class="despacho-registro-head">'+
               '<div><div class="despacho-cliente-title">CLIENTE: '+_escDespacho(cliente)+'</div><div class="despacho-registro-meta">FECHA: '+_escDespacho(fecha)+' · ID: '+_escDespacho(grupo)+'</div></div>'+
@@ -2879,7 +2867,7 @@ function cerrarResultadoGuia() {
         if(!tr)return;
         var inputs=tr.querySelectorAll('input');
         if(inputs[0])inputs[0].value=x.codigo||'';
-        if(inputs[1])inputs[1].value=x.variedad||'';
+        if(inputs[1])inputs[1].value=x.producto||x.variedad||'';
         if(inputs[2])inputs[2].value=Number(x.kg||0).toFixed(3);
       });
       if(typeof calcularTotalKilosEnVivo==='function')calcularTotalKilosEnVivo();
