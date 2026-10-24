@@ -145,9 +145,9 @@
       if (tbodyCampo) {
         tbodyCampo.innerHTML = "";
         if (campoRows.length === 0) {
-          if (tablaBoxCampo) tablaBoxCampo.style.display = 'none';
+          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'hidden';
         } else {
-          if (tablaBoxCampo) tablaBoxCampo.style.display = '';
+          if (tablaBoxCampo) tablaBoxCampo.style.visibility = '';
           var htmlCampo = "";
           campoRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
@@ -177,9 +177,9 @@
       if (tbodyPacking) {
         tbodyPacking.innerHTML = "";
         if (packingRows.length === 0) {
-          if (tablaBoxPacking) tablaBoxPacking.style.display = 'none';
+          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'hidden';
         } else {
-          if (tablaBoxPacking) tablaBoxPacking.style.display = '';
+          if (tablaBoxPacking) tablaBoxPacking.style.visibility = '';
           var htmlPacking = "";
           packingRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
@@ -210,12 +210,6 @@
         var hayCampo = campoRows.length > 0;
         var hayPacking = packingRows.length > 0;
         empresaCard.style.display = (hayCampo || hayPacking) ? '' : 'none';
-
-        if (hayCampo && hayPacking) {
-          empresaGrid.style.gridTemplateColumns = '';
-        } else if (hayCampo || hayPacking) {
-          empresaGrid.style.gridTemplateColumns = 'minmax(0, 1fr) 135px';
-        }
       }
 
       // --- 4. ACTUALIZAR TOTAL EMPRESA ---

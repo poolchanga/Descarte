@@ -223,6 +223,7 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/OZBLU®/g, "")
         .replace(/OZBLU/g, "")
+        .replace(/ARANDANO ORGANICO FRESCO/g, "ORGANICO")
         .replace(/ARANDANO FRESCO/g, "")
         .replace(/GRANEL/g, "")
         .replace(/DESCARTE CAMPO/g, "")
@@ -289,11 +290,7 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
         var productoBD = listaProductosBD[p];
         if (productoBD.tipo !== tipoDescarte) continue;
 
-        if (
-          productoBD.variedadClave === variedadNormalizada ||
-          productoBD.variedadClave.includes(variedadNormalizada) ||
-          variedadNormalizada.includes(productoBD.variedadClave)
-        ) {
+        if (productoBD.variedadClave === variedadNormalizada) {
           return productoBD.codigo;
         }
       }
@@ -1806,7 +1803,7 @@ function _grupoDespachoDesdeId_(id) {
 
 function _leerDespachosFiltrados_(fechaInicioStr, fechaFinStr, empresaFiltro, clienteFiltro, soloVigentesCliente) {
   var sheet = _obtenerHojaDespachos_();
-  var data = sheet.getDataRange().getValues();
+  var data = sheet.getDataRange().getValues(); var bdSheet = SpreadsheetApp.openById('110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4').getSheetByName('BD-PRODUCTOS'); var bdCodigoMap = {}; if (bdSheet) { var bdData = bdSheet.getDataRange().getValues(); for (var b = 1; b < bdData.length; b++) { var bdCodigo = String(bdData[b][0] || '').trim(); var bdDesc = String(bdData[b][1] || '').trim(); if (bdCodigo && bdDesc) { var bdTipo = bdDesc.toUpperCase().indexOf('PACKING') !== -1 ? 'DESCARTE PACKING' : 'DESCARTE CAMPO'; bdCodigoMap[bdTipo + '|' + _normalizarVariedadDespacho_(bdDesc)] = bdCodigo; } } }
   var dInicio = _fechaFiltroDespacho_(fechaInicioStr);
   var dFin = _fechaFiltroDespacho_(fechaFinStr);
   var empresa = String(empresaFiltro || "TODAS").trim().toUpperCase();
@@ -1848,7 +1845,7 @@ function _leerDespachosFiltrados_(fechaInicioStr, fechaFinStr, empresaFiltro, cl
       fechaRegistro: fechaRegistroObj ? fechaRegistroObj.toISOString() : "",
       empresa: empresaFila,
       cliente: clienteFila,
-      codigo: String(data[i][4] || ""),
+      codigo: bdCodigoMap[tipoDescarte + '|' + _normalizarVariedadDespacho_(productoTexto)] || String(data[i][4] || ""),
       producto: productoTexto,
       variedad: variedad,
       tipo: tipoDescarte,
@@ -1882,7 +1879,7 @@ function _normalizarVariedadDespacho_(valor) {
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/ARANDANO FRESCO/g, '')
+    .replace(/ARANDANO ORGANICO FRESCO/g, 'ORGANICO').replace(/ARANDANO FRESCO/g, '')
     .replace(/OZBLU®?/g, '')
     .replace(/DESCARTE\s+(CAMPO|PACKING)/g, '')
     .replace(/DESCARTE/g, '')
@@ -1941,7 +1938,7 @@ function _obtenerBaseDespachoInterna_(fecha, empresaFiltro, clienteFiltro) {
   });
 
   var hoja = _obtenerHojaDespachos_();
-  var data = hoja.getDataRange().getValues();
+  var data = hoja.getDataRange().getValues(); var bdSheet = SpreadsheetApp.openById('110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4').getSheetByName('BD-PRODUCTOS'); var bdCodigoMap = {}; if (bdSheet) { var bdData = bdSheet.getDataRange().getValues(); for (var b = 1; b < bdData.length; b++) { var bdCodigo = String(bdData[b][0] || '').trim(); var bdDesc = String(bdData[b][1] || '').trim(); if (bdCodigo && bdDesc) { var bdTipo = bdDesc.toUpperCase().indexOf('PACKING') !== -1 ? 'PACKING' : 'CAMPO'; bdCodigoMap[bdTipo + '|' + _normalizarVariedadDespacho_(bdDesc)] = bdCodigo; } } }
   var fechaClave = String(fecha || '').trim();
 
   for (var i = 1; i < data.length; i++) {
@@ -1958,7 +1955,7 @@ function _obtenerBaseDespachoInterna_(fecha, empresaFiltro, clienteFiltro) {
     var kgFila = Number(data[i][6] || 0);
     if (!empresaFila || !codigoFila || kgFila <= 0) continue;
 
-    var tipoFila = productoFila.toUpperCase().indexOf('PACKING') !== -1 ? 'PACKING' : 'CAMPO';
+    var tipoFila = productoFila.toUpperCase().indexOf('PACKING') !== -1 ? 'PACKING' : 'CAMPO'; codigoFila = bdCodigoMap[tipoFila + '|' + _normalizarVariedadDespacho_(productoFila)] || codigoFila;
     var variedadFila = productoFila
       .replace(/^ARANDANO FRESCO\s*/i, '')
       .replace(/\s*-\s*DESCARTE\s+(CAMPO|PACKING)\s*$/i, '')
@@ -2113,7 +2110,7 @@ function _obtenerBaseDespachoInternaPorRango_(fechaInicio, fechaFin, empresaFilt
   });
 
   var hoja = _obtenerHojaDespachos_();
-  var data = hoja.getDataRange().getValues();
+  var data = hoja.getDataRange().getValues(); var bdSheet = SpreadsheetApp.openById('110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4').getSheetByName('BD-PRODUCTOS'); var bdCodigoMap = {}; if (bdSheet) { var bdData = bdSheet.getDataRange().getValues(); for (var b = 1; b < bdData.length; b++) { var bdCodigo = String(bdData[b][0] || '').trim(); var bdDesc = String(bdData[b][1] || '').trim(); if (bdCodigo && bdDesc) { var bdTipo = bdDesc.toUpperCase().indexOf('PACKING') !== -1 ? 'PACKING' : 'CAMPO'; bdCodigoMap[bdTipo + '|' + _normalizarVariedadDespacho_(bdDesc)] = bdCodigo; } } }
   var dInicio = _fechaFiltroDespacho_(fechaInicio);
   var dFin = _fechaFiltroDespacho_(fechaFin);
   var clienteUpper = String(clienteFiltro || 'TODOS').trim().toUpperCase();
@@ -2132,7 +2129,7 @@ function _obtenerBaseDespachoInternaPorRango_(fechaInicio, fechaFin, empresaFilt
     var kgFila = Number(data[i][6] || 0);
     if (!empresaFila || !codigoFila || kgFila <= 0) continue;
 
-    var tipoFila = productoFila.toUpperCase().indexOf('PACKING') !== -1 ? 'PACKING' : 'CAMPO';
+    var tipoFila = productoFila.toUpperCase().indexOf('PACKING') !== -1 ? 'PACKING' : 'CAMPO'; codigoFila = bdCodigoMap[tipoFila + '|' + _normalizarVariedadDespacho_(productoFila)] || codigoFila;
     var variedadFila = productoFila
       .replace(/^ARANDANO FRESCO\s*/i, '')
       .replace(/\s*-\s*DESCARTE\s+(CAMPO|PACKING)\s*$/i, '')
