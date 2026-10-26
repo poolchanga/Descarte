@@ -9,11 +9,13 @@
  * ============================================================
  */
 
-function getDashboardData(empresa, fechaInicio, fechaFin, variedad) {
+function getDashboardData(empresa, fechaInicio, fechaFin, variedad, producto) {
   try {
     var ss = SpreadsheetApp.openById(_dashboardSpreadsheetId_());
     var sheetVentas = ss.getSheetByName('VENTAS');
 
+    var perfilProducto = String(producto || 'ARANDANOS').toUpperCase() === 'UVA' ? 'UVA' : 'ARANDANOS';
+    if (perfilProducto === 'UVA' && String(empresa || 'TODAS').toUpperCase() === 'LARAMA') return { exito: false, mensaje: 'El perfil UVA solo permite AGA y ARENUVA.' };
     var filtroEmpresa = _dashboardNormalizar_(empresa || 'TODAS');
     var filtroVariedad = _dashboardNormalizar_(variedad || 'TODAS');
     var inicio = _dashboardFecha_(fechaInicio, false);
@@ -31,8 +33,8 @@ function getDashboardData(empresa, fechaInicio, fechaFin, variedad) {
       });
     }
 
-    var reporte = _dashboardLeerReporte_(empresa || 'TODAS', fechaInicio, fechaFin, filtroVariedad);
-    var stock = _dashboardLeerStockSAP_(empresa || 'TODAS', fechaInicio, fechaFin, filtroVariedad, reporte.cruceMapa);
+    var reporte = _dashboardLeerReporte_(empresa || 'TODAS', fechaInicio, fechaFin, filtroVariedad, perfilProducto);
+    var stock = _dashboardLeerStockSAP_(empresa || 'TODAS', fechaInicio, fechaFin, filtroVariedad, reporte.cruceMapa, perfilProducto);
 
     var kpis = _dashboardKpis_(guias, ventas);
 
@@ -552,7 +554,7 @@ function _dashboardRecientesVentas_(ventas, limite) {
     })
     .slice(0, limite || 6);
 }
-function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin, filtroVariedad) {
+function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin, filtroVariedad, producto) {
   var resultado = {
     totalKg: 0,
     campo: 0,
@@ -565,7 +567,7 @@ function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin, filtroVariedad) 
   try {
     if (!fechaInicio || !fechaFin) return resultado;
 
-    var respuesta = obtenerDatosReportePorFechas(fechaInicio, fechaFin);
+    var respuesta = obtenerDatosReportePorFechas(fechaInicio, fechaFin, producto);
 
     if (!respuesta || !respuesta.exito) return resultado;
 
@@ -688,7 +690,7 @@ function _dashboardLeerReporte_(empresa, fechaInicio, fechaFin, filtroVariedad) 
 }
 
 
-function _dashboardLeerStockSAP_(empresa, fechaInicio, fechaFin, filtroVariedad, mapaSispacking) {
+function _dashboardLeerStockSAP_(empresa, fechaInicio, fechaFin, filtroVariedad, mapaSispacking, producto) {
   var resultado = {
     total: 0,
     pendienteVenta: 0,
@@ -703,8 +705,9 @@ function _dashboardLeerStockSAP_(empresa, fechaInicio, fechaFin, filtroVariedad,
 
   try {
     var filtro = _dashboardNormalizar_(empresa || 'TODAS');
+    var esUva = String(producto || 'ARANDANOS').toUpperCase() === 'UVA';
     var empresas = filtro === 'TODAS'
-      ? ['AGA', 'LARAMA', 'ARENUVA']
+      ? (esUva ? ['AGA', 'ARENUVA'] : ['AGA', 'LARAMA', 'ARENUVA'])
       : [filtro];
 
     mapaSispacking = mapaSispacking || {};
@@ -760,7 +763,18 @@ function _dashboardLeerStockSAP_(empresa, fechaInicio, fechaFin, filtroVariedad,
 
             tipoGrupoActual = colB.includes('PACKING') ? 'PACKING' : 'CAMPO';
 
-            if (colB.includes('ROSITA')) {
+            if (esUva) {
+              var limpiarUva = colB
+                .replace(/DESCARTE\s+(CAMPO|PACKING)/g, '')
+                .replace(/ARANDANO(S)?\s+FRESCO(S)?/g, '')
+                .replace(/UVA(S)?\s+FRESCA(S)?/g, '')
+                .replace(/CAMPO/g, '')
+                .replace(/PACKING/g, '')
+                .replace(/[-]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+              if (limpiarUva) variedadActual = limpiarUva;
+            } else if (colB.includes('ROSITA')) {
               variedadActual = 'ROSITA';
             } else if (colB.includes('RAYMI')) {
               variedadActual = 'RAYMI BLU';

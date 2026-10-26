@@ -7,6 +7,7 @@
     var usuario = localStorage.getItem('sesion_usuario') || 'Usuario';
     var empresa = localStorage.getItem('sesion_empresa') || 'General';
     var tipoAcceso = localStorage.getItem('sesion_tipo') || 'INTERNO';
+    var producto = (localStorage.getItem('sesion_producto') || 'ARANDANOS').toUpperCase();
     
     document.getElementById('lbl-nombre-usuario').innerText = usuario;
     document.getElementById('lbl-empresa-usuario').innerText = "Empresa: " + empresa;
@@ -18,6 +19,41 @@
     if (menuDespachos) {
       menuDespachos.style.display = (empresa.toUpperCase() === 'ADMIN' && tipoAcceso !== 'CLIENTE') ? '' : 'none';
     }
+    var etiquetaPerfil = document.getElementById('lbl-perfil-producto');
+    if (etiquetaPerfil) etiquetaPerfil.textContent = 'Perfil: ' + (producto === 'UVA' ? 'UVA' : 'ARÁNDANOS');
+    var selectorAdmin = document.getElementById('selector-perfil-admin');
+    if (selectorAdmin && empresa.toUpperCase() === 'ADMIN' && tipoAcceso !== 'CLIENTE') {
+      selectorAdmin.style.display = ''; selectorAdmin.value = producto;
+    }
+    aplicarPerfilProducto(producto);
+  }
+
+  function aplicarPerfilProducto(producto) {
+    producto = String(producto || 'ARANDANOS').toUpperCase();
+    var esUva = producto === 'UVA';
+    ['cruce-empresa','reg-empresa','dash-empresa'].forEach(function(id) {
+      var select = document.getElementById(id);
+      if (!select) return;
+      Array.prototype.slice.call(select.options).forEach(function(op) {
+        if (op.value.toUpperCase() === 'LARAMA') op.hidden = esUva;
+      });
+      if (esUva && select.value.toUpperCase() === 'LARAMA') select.value = 'AGA';
+    });
+    var titulo = document.querySelector('.dash-kicker');
+    if (titulo) titulo.textContent = esUva ? 'CONTROL GENERAL DE OPERACIONES · UVA' : 'CONTROL GENERAL DE OPERACIONES · ARÁNDANOS';
+  }
+
+  function cambiarPerfilProductoAdmin(producto) {
+    if (String(localStorage.getItem('sesion_empresa') || '').toUpperCase() !== 'ADMIN') return;
+    producto = String(producto || 'ARANDANOS').toUpperCase() === 'UVA' ? 'UVA' : 'ARANDANOS';
+    localStorage.setItem('sesion_producto', producto);
+    var etiqueta = document.getElementById('lbl-perfil-producto');
+    if (etiqueta) etiqueta.textContent = 'Perfil: ' + (producto === 'UVA' ? 'UVA' : 'ARÁNDANOS');
+    aplicarPerfilProducto(producto);
+    // Recargar el dashboard para que vuelva a consultar bajo el perfil seleccionado.
+    if (typeof cargarDashboardDatos === 'function') cargarDashboardDatos(true);
+    borrarReportes();
+    borrarCruce();
   }
 
   function cambiarPestana(evento, idTab) {
@@ -106,7 +142,7 @@
         if (contenedorReporte) contenedorReporte.style.display = 'none';
         if (estadoInicial) estadoInicial.style.display = '';
       })
-      .obtenerDatosReportePorFechas(fInicio, fFin);
+      .obtenerDatosReportePorFechas(fInicio, fFin, localStorage.getItem('sesion_producto') || 'ARANDANOS');
   }
 
   function renderizarReporteVisual(datos) {
@@ -145,9 +181,9 @@
       if (tbodyCampo) {
         tbodyCampo.innerHTML = "";
         if (campoRows.length === 0) {
-          if (tablaBoxCampo) tablaBoxCampo.style.visibility = 'hidden';
+          if (tablaBoxCampo) tablaBoxCampo.style.display = 'none';
         } else {
-          if (tablaBoxCampo) tablaBoxCampo.style.visibility = '';
+          if (tablaBoxCampo) tablaBoxCampo.style.display = '';
           var htmlCampo = "";
           campoRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
@@ -177,9 +213,9 @@
       if (tbodyPacking) {
         tbodyPacking.innerHTML = "";
         if (packingRows.length === 0) {
-          if (tablaBoxPacking) tablaBoxPacking.style.visibility = 'hidden';
+          if (tablaBoxPacking) tablaBoxPacking.style.display = 'none';
         } else {
-          if (tablaBoxPacking) tablaBoxPacking.style.visibility = '';
+          if (tablaBoxPacking) tablaBoxPacking.style.display = '';
           var htmlPacking = "";
           packingRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
@@ -210,6 +246,24 @@
         var hayCampo = campoRows.length > 0;
         var hayPacking = packingRows.length > 0;
         empresaCard.style.display = (hayCampo || hayPacking) ? '' : 'none';
+
+        // Ajustar la cuadrícula al contenido real para evitar espacios vacíos.
+        if (hayCampo && hayPacking) {
+          empresaGrid.style.setProperty('grid-template-columns', 'minmax(0, 1fr) minmax(0, 1fr) 145px', 'important');
+          empresaGrid.style.maxWidth = '';
+          empresaGrid.style.marginLeft = '';
+          empresaGrid.style.marginRight = '';
+        } else if (hayCampo || hayPacking) {
+          empresaGrid.style.setProperty('grid-template-columns', 'minmax(0, 1fr) 145px', 'important');
+          empresaGrid.style.maxWidth = '1100px';
+          empresaGrid.style.marginLeft = 'auto';
+          empresaGrid.style.marginRight = 'auto';
+          var tablaVisible = hayPacking ? tablaBoxPacking : tablaBoxCampo;
+          if (tablaVisible) {
+            tablaVisible.style.width = '100%';
+            tablaVisible.style.minWidth = '0';
+          }
+        }
       }
 
       // --- 4. ACTUALIZAR TOTAL EMPRESA ---
@@ -428,6 +482,7 @@ function cerrarSesion() {
     localStorage.removeItem('sesion_empresa');
     localStorage.removeItem('sesion_tipo');
     localStorage.removeItem('sesion_token');
+    localStorage.removeItem('sesion_producto');
     window.location.reload();
   }
   function copiarCruce() {
@@ -1534,7 +1589,7 @@ function reimprimirGuiaEncontrada() {
         if (resultados) resultados.style.display = 'none';
         if (estadoInicial) estadoInicial.style.display = '';
       })
-      .obtenerCruceStocks(empresa, fInicio, fFin);
+      .obtenerCruceStocks(empresa, fInicio, fFin, localStorage.getItem('sesion_producto') || 'ARANDANOS');
   }
 
 

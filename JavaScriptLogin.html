@@ -3,6 +3,7 @@
     var usuario = document.getElementById('txt-usuario').value;
     var contrasenia = document.getElementById('txt-pass').value;
     var empresa = document.getElementById('select-empresa').value;
+    var producto = document.getElementById('select-producto').value;
     var mensajeDiv = document.getElementById('login-mensaje');
     
     if(usuario === "" || contrasenia === "") {
@@ -25,6 +26,7 @@
           localStorage.setItem('sesion_tipo', resultado.tipoAcceso || 'INTERNO');
           localStorage.setItem('sesion_cliente', resultado.cliente || '');
           localStorage.setItem('sesion_token', resultado.token || '');
+          localStorage.setItem('sesion_producto', resultado.producto || producto || 'ARANDANOS');
           
           // Reemplazar todo el cuerpo con la interfaz principal
           google.script.run
@@ -39,6 +41,6 @@
           mensajeDiv.className = "login-error";
         }
       })
-      .validarCredenciales(usuario, contrasenia, empresa);
+      .validarCredenciales(usuario, contrasenia, empresa, producto);
   }
 </script>

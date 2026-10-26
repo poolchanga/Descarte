@@ -616,7 +616,12 @@
     <div class="main-content">
       <header class="main-header">
         <h2 id="txt-titulo-pestana">Dashboard General</h2>
-        <div class="header-right">
+        <div class="header-right" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <label id="lbl-perfil-producto" style="font-weight:800;font-size:12px;">Perfil: ARÁNDANOS</label>
+          <select id="selector-perfil-admin" onchange="cambiarPerfilProductoAdmin(this.value)" style="display:none;padding:7px 10px;border-radius:6px;border:1px solid #cbd5e1;font-weight:700;">
+            <option value="ARANDANOS">ARÁNDANOS</option>
+            <option value="UVA">UVA</option>
+          </select>
           <span id="txt-fecha-actual"></span>
         </div>
       </header>
@@ -716,7 +721,7 @@
         if (estado) estado.textContent = 'No se pudo cargar el Dashboard.';
         console.error(error);
       })
-      .getDashboardData(empresa, fechaInicio, fechaFin, variedad);
+      .getDashboardData(empresa, fechaInicio, fechaFin, variedad, localStorage.getItem('sesion_producto') || 'ARANDANOS');
   }
 
   function actualizarListaVariedades(lista, seleccionActual) {
@@ -948,7 +953,7 @@
             
             <!-- Encabezado Superior -->
             <div class="reporte-header-top">
-              <h2>DESCARTE DE ARÁNDANOS</h2>
+              <h2 id="titulo-reporte-producto">DESCARTE DE ARÁNDANOS</h2>
               <div class="reporte-fecha-badge">
                 📅 Fecha de reporte: <span id="lbl-fecha-reporte">--/--/----</span>
               </div>

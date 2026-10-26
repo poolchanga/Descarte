@@ -13,7 +13,12 @@ function incluir(nombreArchivo) {
 }
 
 // Función para validar el Login desde las pestañas del Sheet
-function _crearSesionDespachos_(usuario, tipoAcceso, cliente, empresa) {
+function _normalizarPerfilProducto_(producto) {
+  var valor = String(producto || "ARANDANOS").trim().toUpperCase();
+  return valor === "UVA" ? "UVA" : "ARANDANOS";
+}
+
+function _crearSesionDespachos_(usuario, tipoAcceso, cliente, empresa, producto) {
   var token = Utilities.getUuid();
   CacheService.getScriptCache().put(
     "DESPACHOS_SESION_" + token,
@@ -21,7 +26,8 @@ function _crearSesionDespachos_(usuario, tipoAcceso, cliente, empresa) {
       usuario: String(usuario || ""),
       tipoAcceso: String(tipoAcceso || ""),
       cliente: String(cliente || ""),
-      empresa: String(empresa || "")
+      empresa: String(empresa || ""),
+      producto: _normalizarPerfilProducto_(producto)
     }),
     21600
   );
@@ -56,13 +62,18 @@ function _exigirClienteDespachos_(token) {
 }
 
 // Función para validar el Login desde las pestañas del Sheet
-function validarCredenciales(usuario, contrasenia, empresa) {
+function validarCredenciales(usuario, contrasenia, empresa, producto) {
   try {
     var sheetId = "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
     var ss = SpreadsheetApp.openById(sheetId);
     var usuarioLimpio = String(usuario || "").trim();
     var contraseniaLimpia = String(contrasenia || "").trim();
     var accesoSeleccionado = String(empresa || "").trim().toUpperCase();
+    var productoSeleccionado = _normalizarPerfilProducto_(producto);
+
+    if (productoSeleccionado === "UVA" && accesoSeleccionado === "LARAMA") {
+      return { exito: false, mensaje: "El perfil UVA solo permite el acceso a AGA y ARENUVA." };
+    }
 
     // Acceso exclusivo de clientes externos.
     if (accesoSeleccionado === "CLIENTES") {
@@ -91,14 +102,15 @@ function validarCredenciales(usuario, contrasenia, empresa) {
             return { exito: false, mensaje: "El cliente asignado al usuario no está ACTIVO en la pestaña CLIENTES." };
           }
 
-          var tokenCliente = _crearSesionDespachos_(usuarioLimpio, "CLIENTE", clienteActivo, "CLIENTES");
+          var tokenCliente = _crearSesionDespachos_(usuarioLimpio, "CLIENTE", clienteActivo, "CLIENTES", productoSeleccionado);
           return {
             exito: true,
             usuario: usuarioLimpio,
             empresa: "CLIENTES",
             cliente: clienteActivo,
             tipoAcceso: "CLIENTE",
-            token: tokenCliente
+            token: tokenCliente,
+            producto: productoSeleccionado
           };
         }
       }
@@ -124,14 +136,15 @@ function validarCredenciales(usuario, contrasenia, empresa) {
       if (userSheet === usuarioLimpio.toLowerCase() && passSheet === contraseniaLimpia) {
         if (estado === "ACTIVO") {
           var tipoInterno = accesoSeleccionado === "ADMIN" ? "ADMIN" : "INTERNO";
-          var tokenInterno = _crearSesionDespachos_(usuarioLimpio, tipoInterno, "", accesoSeleccionado);
+          var tokenInterno = _crearSesionDespachos_(usuarioLimpio, tipoInterno, "", accesoSeleccionado, productoSeleccionado);
           return {
             exito: true,
             usuario: usuarioLimpio,
             empresa: accesoSeleccionado,
             tipoAcceso: tipoInterno,
             cliente: "",
-            token: tokenInterno
+            token: tokenInterno,
+            producto: productoSeleccionado
           };
         } else {
           return { exito: false, mensaje: "El usuario se encuentra INACTIVO." };
@@ -155,14 +168,16 @@ function cargarInterfazPrincipal(tipoAcceso, cliente, usuario) {
   return HtmlService.createTemplateFromFile('Interfaz').evaluate().getContent();
 }
 
-function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
+function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr, producto) {
   try {
     var sheetId = "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
     var ss = SpreadsheetApp.openById(sheetId);
-    var sheetLinks = ss.getSheetByName("LINK-FECHA");
+    var perfilProducto = _normalizarPerfilProducto_(producto);
+    var nombreHojaLinks = perfilProducto === "UVA" ? "LINK-FECHA-UVA" : "LINK-FECHA";
+    var sheetLinks = ss.getSheetByName(nombreHojaLinks);
     
     if (!sheetLinks) {
-      return { exito: false, mensaje: "No se encontró la pestaña 'LINK-FECHA' en el documento maestro." };
+      return { exito: false, mensaje: "No se encontró la pestaña '" + nombreHojaLinks + "' en el documento maestro." };
     }
     
     var datosLinks = sheetLinks.getDataRange().getValues();
@@ -217,27 +232,38 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
     var sheetProductos = ss.getSheetByName("BD-PRODUCTOS");
 
     var normalizarProducto = function(texto) {
-      return String(texto || "")
+      var valor = String(texto || "")
         .toUpperCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/OZBLU®/g, "")
+        .replace(/[\\u0300-\\u036f]/g, "")
+        .replace(/®/g, "")
         .replace(/OZBLU/g, "")
         .replace(/ARANDANO ORGANICO FRESCO/g, "ORGANICO")
         .replace(/ARANDANO FRESCO/g, "")
+        .replace(/UVA FRESCA/g, "")
+        // Unificar variantes de Jack's Salute/JACKÁ'S SALUTE.
+        .replace(/JACKA?\\s*['’]?\\s*S\\s*SALUTE/g, "JACKASSALUTE")
+        .replace(/JACKS\\s*SALUTE/g, "JACKASSALUTE")
         .replace(/GRANEL/g, "")
-        .replace(/DESCARTE CAMPO/g, "")
-        .replace(/DESCARTE PACKING/g, "")
+        // Las descripciones de BD pueden decir "DESCARTE DE PACKING".
+        .replace(/DESCARTE\\s+DE\\s+PACKING/g, "")
+        .replace(/DESCARTE\\s+DE\\s+CAMPO/g, "")
+        .replace(/DESCARTE\\s+PACKING/g, "")
+        .replace(/DESCARTE\\s+CAMPO/g, "")
         .replace(/DESCARTE/g, "")
         .replace(/CAMPO/g, "")
         .replace(/PACKING/g, "")
         .replace(/[^A-Z0-9]+/g, " ")
-        .replace(/\s+/g, " ")
+        .replace(/\\s+/g, " ")
         .trim();
+
+      // SISPACKING puede enviar AUTUMNCRISP y BD-PRODUCTOS AUTUMN CRISP.
+      // Compactar espacios solo para comparar; el código original no se altera.
+      return valor.replace(/\\s+/g, "");
     };
 
     var obtenerTipoDescarte = function(texto) {
-      var valor = String(texto || "").toUpperCase();
+      var valor = String(texto || "").toUpperCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
       return valor.includes("PACKING") ? "DESCARTE PACKING" : "DESCARTE CAMPO";
     };
 
@@ -401,10 +427,15 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr) {
 // CRUCE DE STOCKS (LECTURA VERTICAL DINÁMICA)
 // ==========================================
 
-function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
+function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr, producto) {
   try {
     var sheetId = "110fiUgfJizj_JR7RG3B-xnwfC3wx0NAlbAD4kie-oZ4";
     var ss = SpreadsheetApp.openById(sheetId);
+    var perfilProducto = _normalizarPerfilProducto_(producto);
+    empresaSeleccionada = String(empresaSeleccionada || "").trim().toUpperCase();
+    if (perfilProducto === "UVA" && empresaSeleccionada === "LARAMA") {
+      return { exito: false, mensaje: "El perfil UVA solo permite el cruce de AGA y ARENUVA." };
+    }
     
     // --- 0. CARGAR LISTA DE PRODUCTOS DESDE BD-PRODUCTOS ---
     var listaProductosBD = [];
@@ -429,6 +460,8 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/ARANDANO ORGANICO FRESCO/g, "ORGANICO")
         .replace(/ARANDANO FRESCO/g, "")
+        .replace(/UVA FRESCA/g, "")
+        .replace(/JACKA\s*S\s*SALUTE/g, "JACK S SALUTE")
         .replace(/OZBLU®?/g, "")
         .replace(/GRANEL/g, "")
         .replace(/DESCARTE\s+(CAMPO|PACKING)/g, "")
@@ -476,8 +509,9 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr) {
     };
 
     // --- 1. OBTENER ENLACES DE SISPACKING (HOJA LINK-FECHA) ---
-    var sheetLinks = ss.getSheetByName("LINK-FECHA");
-    if (!sheetLinks) return { exito: false, mensaje: "No se encontró la pestaña 'LINK-FECHA'." };
+    var nombreHojaLinks = perfilProducto === "UVA" ? "LINK-FECHA-UVA" : "LINK-FECHA";
+    var sheetLinks = ss.getSheetByName(nombreHojaLinks);
+    if (!sheetLinks) return { exito: false, mensaje: "No se encontró la pestaña '" + nombreHojaLinks + "'." };
     
     var datosLinks = sheetLinks.getDataRange().getValues();
     
