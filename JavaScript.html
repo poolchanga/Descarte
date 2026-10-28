@@ -171,8 +171,12 @@
       var empLower = emp.toLowerCase();
       var filasEmpresa = datos.filter(d => (d.empresa || '').toUpperCase() === emp);
 
-      // Filtrar filas por tipo de descarte
-      var campoRows = filasEmpresa.filter(r => (r.presentacion || '').toUpperCase().includes("CAMPO"));
+      // Filtrar filas por tipo de descarte. Mercado nacional pertenece al módulo de Campo.
+      var campoRows = filasEmpresa.filter(function(r) {
+        var presentacion = (r.presentacion || '').toUpperCase();
+        return !presentacion.includes("PACKING") &&
+          (presentacion.includes("CAMPO") || presentacion.includes("MERCADO NACIONAL"));
+      });
       var packingRows = filasEmpresa.filter(r => (r.presentacion || '').toUpperCase().includes("PACKING"));
 
       var tbodyCampo = document.querySelector('#tabla-' + empLower + '-campo tbody');
@@ -196,7 +200,8 @@
           campoRows.forEach(function(r) {
             var peso = parseFloat(r.peso || 0);
             subtotalCampo += peso;
-            var tipoCampo = 'DESCARTE CAMPO';
+            var presentacionCampo = (r.presentacion || '').toUpperCase();
+            var tipoCampo = presentacionCampo.includes('MERCADO NACIONAL') ? 'MER-NACIONAL' : 'CAMPO';
             htmlCampo += '<tr>' +
               '<td>' + (r.fecha || '') + '</td>' +
               '<td>' + (r.planta || '') + '</td>' +
@@ -435,9 +440,10 @@ function copiarDatosReporte() {
     var txt = "EMPRESA\tFECHA\tPLANTA/FUNDO ORIGEN\tCÓDIGO\tVARIEDAD\tTIPO DESCARTE\tPESO NETO (KG)\n";
 
     datosReporteActual.forEach(function(r) {
-      var tipo = (r.presentacion || '').toUpperCase().includes('PACKING')
+      var presentacion = (r.presentacion || '').toUpperCase();
+      var tipo = presentacion.includes('PACKING')
         ? 'DESCARTE PACKING'
-        : 'DESCARTE CAMPO';
+        : (presentacion.includes('MERCADO NACIONAL') ? 'MER-NACIONAL' : 'CAMPO');
 
       txt += (r.empresa || '') + "\t" +
              (r.fecha || '') + "\t" +

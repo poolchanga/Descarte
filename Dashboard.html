@@ -2,238 +2,80 @@
 <html>
 <head>
   <base target="_top">
+  <meta charset="utf-8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #C2D7D6;
-      margin: 0;
-      padding: 20px;
-      color: #333333;
-    }
-    
-    .dashboard-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    
-    .dashboard-title {
-      font-size: 24px;
-      font-weight: bold;
-      color: #486365;
-    }
-    
-    /* Filtros Controls */
-    .filter-card {
-      background: #FFFFFF;
-      border-radius: 12px;
-      padding: 15px 20px;
-      margin-bottom: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      align-items: center;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-    
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    
-    .filter-group label {
-      font-size: 12px;
-      font-weight: bold;
-      color: #486365;
-      text-transform: uppercase;
-    }
-    
-    .filter-group select, .filter-group input {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #B0C4C3;
-      outline: none;
-      font-size: 14px;
-      background-color: #F8FAF9;
-    }
-    
-    .btn-filter {
-      background-color: #486365;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      margin-top: 18px;
-      transition: background-color 0.2s;
-    }
-    
-    .btn-filter:hover {
-      background-color: #384c4d;
-    }
-    
-    /* KPIs Row */
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .kpi-card {
-      background: #FFFFFF;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-    
-    .kpi-title {
-      font-size: 12px;
-      font-weight: bold;
-      color: #5E8A8F;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-    
-    .kpi-value {
-      font-size: 28px;
-      font-weight: bold;
-      color: #333333;
-    }
-    
-    /* Charts Layout */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
-    }
-    
-    @media (max-width: 992px) {
-      .charts-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    .chart-card {
-      background: #FFFFFF;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-    
-    .chart-title {
-      font-size: 16px;
-      font-weight: bold;
-      color: #486365;
-      margin-bottom: 15px;
-    }
+    :root{--ink:#29484B;--muted:#60777A;--bg:#EFF5F4;--card:#fff;--line:#DCE7E8;--teal:#486365;--green:#2F7D62;--amber:#8A5A00;--red:#B85A5A}
+    *{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);font-family:Arial,sans-serif;color:var(--ink)}
+    .head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 auto 14px;max-width:1500px}.title{font-size:23px;font-weight:800}.sub{font-size:12px;color:var(--muted);margin-top:4px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;box-shadow:0 3px 10px rgba(41,72,75,.05);min-width:0}
+    .filters{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr)) auto;gap:10px;align-items:end;margin:0 auto 14px;max-width:1500px}.field label{display:block;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:5px}.field select,.field input{width:100%;padding:9px;border:1px solid #C8D7D8;border-radius:7px;background:#FAFCFC;color:var(--ink);min-height:36px}
+    button{border:0;border-radius:7px;background:var(--teal);color:white;padding:10px 15px;font-weight:800;cursor:pointer;min-height:36px}button:disabled{opacity:.55;cursor:wait}
+    .status{max-width:1500px;margin:0 auto 12px;color:var(--muted);font-size:12px;min-height:16px}.status.error{color:var(--red)}
+    .kpis{max-width:1500px;margin:0 auto 14px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.kpi-label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;min-height:26px}.kpi-value{font-size:25px;font-weight:900;margin-top:8px;overflow-wrap:anywhere}.kpi-note{font-size:10px;color:var(--muted);margin-top:5px}
+    .section-title{font-size:14px;font-weight:900;margin:0 0 12px}.charts{max-width:1500px;margin:0 auto 14px;display:grid;grid-template-columns:1.5fr 1fr;gap:12px}.chart-wrap{position:relative;height:290px}
+    .lower{max-width:1500px;margin:0 auto 14px;display:grid;grid-template-columns:1.2fr 1fr;gap:12px}.table-wrap{overflow:auto;max-width:100%}table{border-collapse:collapse;width:100%;font-size:11px}th{background:#819DA7;color:#fff;text-align:left;padding:8px;white-space:nowrap}td{border-bottom:1px solid #E8EFF0;padding:8px;white-space:nowrap}td.num{text-align:right;font-variant-numeric:tabular-nums}.badge{display:inline-block;padding:3px 7px;border-radius:20px;background:#EAF4EE;color:var(--green);font-weight:800;font-size:9px}.badge.warn{background:#FFF2D9;color:var(--amber)}.badge.bad{background:#FBECEC;color:var(--red)}.empty{padding:18px;text-align:center;color:#879496;font-size:12px}
+    @media(max-width:950px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.charts,.lower{grid-template-columns:1fr}}
+    @media(max-width:520px){body{padding:9px}.head{align-items:flex-start}.title{font-size:19px}.filters{grid-template-columns:1fr 1fr}.kpi-value{font-size:21px}.card{padding:11px}.chart-wrap{height:250px}}
   </style>
 </head>
 <body>
-
-  <div class="dashboard-header">
-    <div class="dashboard-title">Dashboard General</div>
-  </div>
-
-  <!-- Panel de Filtros -->
-  <div class="filter-card">
-    <div class="filter-group">
-      <label for="empresaSelect">Empresa</label>
-      <select id="empresaSelect">
-        <option value="TODAS">TODAS LAS EMPRESAS</option>
-        <option value="AGA">AGA</option>
-        <option value="LARAMA">LARAMA</option>
-        <option value="ARENUVA">ARENUVA</option>
-      </select>
-    </div>
-    
-    <div class="filter-group">
-      <label for="fechaInicio">Fecha Inicio</label>
-      <input type="date" id="fechaInicio">
-    </div>
-    
-    <div class="filter-group">
-      <label for="fechaFin">Fecha Fin</label>
-      <input type="date" id="fechaFin">
-    </div>
-    
-    <button class="btn-filter" onclick="cargarDashboard()">Filtrar Datos</button>
-  </div>
-
-  <!-- Tarjetas KPI -->
-  <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-title">DESCARTE CAMPO (KG)</div>
-      <div class="kpi-value" id="kpiCampo">0.00</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">DESCARTE PACKING (KG)</div>
-      <div class="kpi-value" id="kpiPacking">0.00</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-title">TOTAL CONSOLIDADO (KG)</div>
-      <div class="kpi-value" id="kpiTotal">0.00</div>
-    </div>
-  </div>
-
-  <!-- Gráficos -->
-  <div class="charts-grid">
-    <div class="chart-card">
-      <div class="chart-title">Descarte por Fechas y Tipo (Kg)</div>
-      <canvas id="chartFechas" height="120"></canvas>
-    </div>
-    
-    <div class="chart-card">
-      <div class="chart-title">Descarte por Variedades (Kg)</div>
-      <canvas id="chartVariedades" height="240"></canvas>
-    </div>
-  </div>
-
-  <script>
-    var chartFechasInstance = null;
-    var chartVariedadesInstance = null;
-
-    document.addEventListener("DOMContentLoaded", function() {
-      cargarDashboard();
-    });
-
-    function cargarDashboard() {
-  // Mostrar indicadores de carga/spinner si aplica
-  google.script.run
-    .withSuccessHandler(renderizarDashboard)
-    .withFailureHandler(err => console.error('Error al cargar dashboard:', err))
-    .obtenerMetricasDashboard();
-}
-
-function renderizarDashboard(respuesta) {
-  if (!respuesta.exito) {
-    alert('Error: ' + respuesta.mensaje);
-    return;
+  <header class="head"><div><div class="title">Dashboard General</div><div class="sub">Resumen de descarte, ventas y control de stock</div></div></header>
+  <section class="card filters">
+    <div class="field"><label for="empresaSelect">Empresa</label><select id="empresaSelect"><option value="TODAS">Todas las empresas</option><option value="AGA">AGA</option><option value="LARAMA">LARAMA</option><option value="ARENUVA">ARENUVA</option></select></div>
+    <div class="field"><label for="fechaInicio">Fecha inicio</label><input type="date" id="fechaInicio"></div>
+    <div class="field"><label for="fechaFin">Fecha fin</label><input type="date" id="fechaFin"></div>
+    <div class="field"><label for="productoSelect">Producto</label><select id="productoSelect"><option value="ARANDANOS">Arándanos</option><option value="UVA">Uva</option></select></div>
+    <button id="btnFiltrar" onclick="cargarDashboard()">Aplicar filtros</button>
+  </section>
+  <div id="dashboardStatus" class="status" role="status" aria-live="polite">Cargando información…</div>
+  <section class="kpis">
+    <div class="card"><div class="kpi-label">Descarte campo (kg)</div><div class="kpi-value" id="kpiCampo">0.000</div><div class="kpi-note">Incluye la categoría de campo reportada por origen</div></div>
+    <div class="card"><div class="kpi-label">Mercado nacional (kg)</div><div class="kpi-value" id="kpiMercado">0.000</div><div class="kpi-note">Permanece dentro del módulo de descarte campo</div></div>
+    <div class="card"><div class="kpi-label">Descarte packing (kg)</div><div class="kpi-value" id="kpiPacking">0.000</div><div class="kpi-note">Según los registros de descarte</div></div>
+    <div class="card"><div class="kpi-label">Total descarte (kg)</div><div class="kpi-value" id="kpiTotal">0.000</div><div class="kpi-note">Campo + packing; mercado nacional se identifica dentro de campo</div></div>
+    <div class="card"><div class="kpi-label">Kilos vendidos (kg)</div><div class="kpi-value" id="kpiVendidos">0.000</div><div class="kpi-note">Solo registros de VENTAS; los despachos no se suman automáticamente</div></div>
+    <div class="card"><div class="kpi-label">Stock actual (kg)</div><div class="kpi-value" id="kpiStock">0.000</div><div class="kpi-note">Según el cruce de stock disponible</div></div>
+    <div class="card"><div class="kpi-label">Pendiente de venta (kg)</div><div class="kpi-value" id="kpiPendiente">0.000</div><div class="kpi-note">Stock menos ventas contabilizadas, con mínimo cero por variedad</div></div>
+    <div class="card"><div class="kpi-label">Diferencias de stock (kg)</div><div class="kpi-value" id="kpiDiferencias">0.000</div><div class="kpi-note">Diferencias detectadas en el cruce</div></div>
+    <div class="card"><div class="kpi-label">Ventas registradas</div><div class="kpi-value" id="kpiNumVentas">0</div><div class="kpi-note">Correlativos de venta distintos</div></div>
+  </section>
+  <section class="charts">
+    <div class="card"><h2 class="section-title">Descarte por fecha y tipo (kg)</h2><div class="chart-wrap"><canvas id="chartFechas"></canvas></div></div>
+    <div class="card"><h2 class="section-title">Descarte por variedad (kg)</h2><div class="chart-wrap"><canvas id="chartVariedades"></canvas></div></div>
+  </section>
+  <section class="lower">
+    <div class="card"><h2 class="section-title">Control de stock por variedad</h2><div class="table-wrap" id="tablaStock"><div class="empty">Cargando…</div></div></div>
+    <div class="card"><h2 class="section-title">Ventas recientes</h2><div class="table-wrap" id="tablaVentas"><div class="empty">Cargando…</div></div></div>
+  </section>
+<script>
+  var chartFechasInstance=null, chartVariedadesInstance=null;
+  function fmt(n){return (Number(n)||0).toLocaleString('es-PE',{minimumFractionDigits:3,maximumFractionDigits:3});}
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function hoyISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function inicioAnoISO(){return new Date().getFullYear()+'-01-01';}
+  document.addEventListener('DOMContentLoaded',function(){document.getElementById('fechaInicio').value=inicioAnoISO();document.getElementById('fechaFin').value=hoyISO();cargarDashboard();});
+  function estado(msg,error){var el=document.getElementById('dashboardStatus');el.textContent=msg||'';el.className='status'+(error?' error':'');}
+  function cargarDashboard(){
+    var ini=document.getElementById('fechaInicio').value, fin=document.getElementById('fechaFin').value;
+    if(ini&&fin&&ini>fin){estado('La fecha inicial no puede ser posterior a la fecha final.',true);return;}
+    var btn=document.getElementById('btnFiltrar');btn.disabled=true;estado('Actualizando indicadores…');
+    google.script.run.withSuccessHandler(function(r){btn.disabled=false;renderizarDashboard(r);}).withFailureHandler(function(e){btn.disabled=false;estado('No se pudo cargar el Dashboard: '+(e&&e.message?e.message:e),true);}).getDashboardData(document.getElementById('empresaSelect').value,ini,fin,'TODAS',document.getElementById('productoSelect').value);
   }
-
-  const { totales, recientes } = respuesta;
-
-<!-- Estructura HTML recomendada para las tarjetas KPI del Dashboard -->
-<div class="dashboard-grid">
-  <div class="kpi-card">
-    <span class="kpi-title">Kilos Totales</span>
-    <span class="kpi-value" id="lblKilosTotales">0.00</span>
-  </div>
-  <div class="kpi-card">
-    <span class="kpi-title">Total Guías</span>
-    <span class="kpi-value" id="lblTotalGuias">0</span>
-  </div>
-  <div class="kpi-card">
-    <span class="kpi-title">Guías Pendientes</span>
-    <span class="kpi-value" id="lblGuiasPendientes">0</span>
-  </div>
-  <div class="kpi-card">
-    <span class="kpi-title">Guías Aprobadas</span>
-    <span class="kpi-value" id="lblGuiasAprobadas">0</span>
-  </div>
-</div>
-}
+  function renderizarDashboard(r){
+    if(!r||!r.exito){estado((r&&r.mensaje)||'No se recibió una respuesta válida del Dashboard.',true);return;}
+    var k=r.kpis||{};document.getElementById('kpiCampo').textContent=fmt(k.kilosCampo);document.getElementById('kpiMercado').textContent=fmt(k.kilosMercadoNacional);document.getElementById('kpiPacking').textContent=fmt(k.kilosPacking);document.getElementById('kpiTotal').textContent=fmt(k.kilosDescarte);document.getElementById('kpiVendidos').textContent=fmt(k.kilosVendidos);document.getElementById('kpiStock').textContent=fmt(k.stockActual);document.getElementById('kpiPendiente').textContent=fmt(k.stockPendienteVenta);document.getElementById('kpiDiferencias').textContent=fmt(k.diferenciasStock);document.getElementById('kpiNumVentas').textContent=Number(k.ventasRegistradas||0).toLocaleString('es-PE');
+    dibujarGraficos(r);dibujarStock(r.controlStock||[]);dibujarVentas(r.recientesVentas||[]);estado('Datos actualizados. Empresa: '+(r.filtros&&r.filtros.empresa||'TODAS')+' · Periodo: '+(r.filtros&&r.filtros.fechaInicio||'')+' a '+(r.filtros&&r.filtros.fechaFin||''));
+  }
+  function dibujarGraficos(r){
+    var fechas=r.porFechaReporte||[], labels=fechas.map(function(x){return x.fecha||x.label||'';});
+    var campo=fechas.map(function(x){return Number(x.campo||0);}), mercado=fechas.map(function(x){return Number(x.mercado||0);}), packing=fechas.map(function(x){return Number(x.packing||0);});
+    if(chartFechasInstance)chartFechasInstance.destroy();chartFechasInstance=new Chart(document.getElementById('chartFechas'),{type:'bar',data:{labels:labels,datasets:[{label:'Campo',data:campo,backgroundColor:'#6C9B8A'},{label:'Mercado nacional',data:mercado,backgroundColor:'#D8A84E'},{label:'Packing',data:packing,backgroundColor:'#789BB8'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},scales:{y:{beginAtZero:true}},plugins:{legend:{position:'bottom'}}}});
+    var vars=r.porVariedadReporte||[], top=vars.slice().sort(function(a,b){return Number(b.kg||b.peso||0)-Number(a.kg||a.peso||0);}).slice(0,12);
+    if(chartVariedadesInstance)chartVariedadesInstance.destroy();chartVariedadesInstance=new Chart(document.getElementById('chartVariedades'),{type:'bar',data:{labels:top.map(function(x){return x.variedad||x.label||'Sin variedad';}),datasets:[{label:'Kilos',data:top.map(function(x){return Number(x.kg||x.peso||0);}),backgroundColor:'#819DA7'}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{beginAtZero:true}},plugins:{legend:{display:false}}}});
+  }
+  function dibujarStock(items){var el=document.getElementById('tablaStock');if(!items.length){el.innerHTML='<div class="empty">No hay datos de stock para los filtros seleccionados.</div>';return;}var h='<table><thead><tr><th>Variedad</th><th>Stock kg</th><th>Vendido kg</th><th>Pendiente kg</th><th>Estado</th></tr></thead><tbody>';items.forEach(function(x){var estadoTxt=x.estado||'—',cl=estadoTxt==='OK'?'':(estadoTxt==='PENDIENTE DE VENTA'?'warn':'bad');h+='<tr><td>'+esc(x.variedad)+'</td><td class="num">'+fmt(x.stock)+'</td><td class="num">'+fmt(x.vendido)+'</td><td class="num">'+fmt(x.pendiente)+'</td><td><span class="badge '+cl+'">'+esc(estadoTxt)+'</span></td></tr>';});el.innerHTML=h+'</tbody></table>';}
+  function dibujarVentas(items){var el=document.getElementById('tablaVentas');if(!items.length){el.innerHTML='<div class="empty">No hay ventas registradas en el periodo seleccionado.</div>';return;}var h='<table><thead><tr><th>Fecha</th><th>Empresa</th><th>Cliente</th><th>Correlativo</th><th>Variedad</th><th>Kg</th></tr></thead><tbody>';items.forEach(function(x){h+='<tr><td>'+esc(x.fecha)+'</td><td>'+esc(x.empresa)+'</td><td>'+esc(x.cliente)+'</td><td>'+esc(x.correlativo)+'</td><td>'+esc(x.variedad||x.descripcion||'')+'</td><td class="num">'+fmt(x.kg)+'</td></tr>';});el.innerHTML=h+'</tbody></table>';}
+</script>
+</body>
+</html>

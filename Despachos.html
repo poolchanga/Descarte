@@ -30,6 +30,7 @@
     #tab-despachos .tipo-chip{display:inline-block;padding:3px 7px;border-radius:99px;font-size:8px;font-weight:900}
     #tab-despachos .tipo-campo{background:#EAF4EE;color:#2F7D62}
     #tab-despachos .tipo-packing{background:#EEF4FA;color:#3C6A95}
+    #tab-despachos .tipo-mercado{background:#FFF2D9;color:#8A5A00}
     #tab-despachos .despachos-total-row{display:flex;justify-content:flex-end;gap:24px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #DCE7E8;color:#526466;font-size:11px}
     #tab-despachos .despachos-total-row strong{color:#29484B}
     #tab-despachos .despachos-total-general{max-width:430px;margin:14px auto 0;background:#FFF2CC;border:2px solid #FFD966;border-radius:8px;padding:14px;text-align:center}
@@ -554,7 +555,8 @@
         totalSaldo+=Number(x.saldo||0);
         var inputId='inp-despacho-'+idx+'-'+emp.toLowerCase();
         var disabled=Number(x.saldo||0)<=0?' disabled':'';
-        var tipoCls=String(x.tipo||'').toUpperCase()==='PACKING'?'tipo-packing':'tipo-campo';
+        var tipoValor=String(x.tipo||'').toUpperCase();
+        var tipoCls=tipoValor==='PACKING'?'tipo-packing':(tipoValor==='MERCA-NACIONAL'?'tipo-mercado':'tipo-campo');
         var keyData=encodeURIComponent(JSON.stringify({empresa:x.empresa,tipo:x.tipo,codigo:x.codigo,variedad:x.variedad}));
         return '<tr data-despacho-key="'+keyData+'">'+
           '<td><input type="checkbox" class="row-selector" aria-label="Seleccionar fila"></td>'+
