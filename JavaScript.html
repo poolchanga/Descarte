@@ -41,6 +41,9 @@
     });
     var titulo = document.querySelector('.dash-kicker');
     if (titulo) titulo.textContent = esUva ? 'CONTROL GENERAL DE OPERACIONES · UVA' : 'CONTROL GENERAL DE OPERACIONES · ARÁNDANOS';
+    // El título del reporte estaba fijo en Interfaz.html; actualizarlo al perfil activo.
+    var tituloReporte = document.getElementById('titulo-reporte-producto');
+    if (tituloReporte) tituloReporte.textContent = esUva ? 'DESCARTE DE UVAS' : 'DESCARTE DE ARÁNDANOS';
   }
 
   function cambiarPerfilProductoAdmin(producto) {
@@ -50,10 +53,15 @@
     var etiqueta = document.getElementById('lbl-perfil-producto');
     if (etiqueta) etiqueta.textContent = 'Perfil: ' + (producto === 'UVA' ? 'UVA' : 'ARÁNDANOS');
     aplicarPerfilProducto(producto);
-    // Recargar el dashboard para que vuelva a consultar bajo el perfil seleccionado.
+    // Limpiar datos que pudieran pertenecer al perfil anterior antes de volver a consultar.
+    if (typeof borrarReportes === 'function') borrarReportes();
+    if (typeof borrarCruce === 'function') borrarCruce();
     if (typeof cargarDashboardDatos === 'function') cargarDashboardDatos(true);
-    borrarReportes();
-    borrarCruce();
+    // El selector de empresa también debe quedar en una opción permitida por el perfil.
+    ['cruce-empresa', 'reg-empresa', 'dash-empresa'].forEach(function(id) {
+      var select = document.getElementById(id);
+      if (select && producto === 'UVA' && String(select.value || '').toUpperCase() === 'LARAMA') select.value = 'AGA';
+    });
   }
 
   function cambiarPestana(evento, idTab) {

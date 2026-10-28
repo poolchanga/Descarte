@@ -18,6 +18,71 @@ function _normalizarPerfilProducto_(producto) {
   return valor === "UVA" ? "UVA" : "ARANDANOS";
 }
 
+// Clave canónica compartida para comparar variedades entre SISPACKING,
+// SAP y BD-PRODUCTOS sin alterar los nombres ni los códigos originales.
+function _normalizarClaveVariedadProducto_(texto) {
+  var clave = String(texto || "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/®/g, "")
+    // Unificar Jack's Salute aunque el origen use JACK'S, JACKS o JACKÁ'S.
+    .replace(/JACK[A]?\s*['’]?\s*S\s*SALUTE/g, "JACKSSALUTE")
+    .replace(/JACKS\s*SALUTE/g, "JACKSSALUTE")
+    .replace(/UVA\s+FRESCA(S)?/g, "")
+    .replace(/ARANDANO(S)?\s+ORGANICO(S)?\s+FRESCO(S)?/g, "ORGANICO")
+    .replace(/ARANDANO(S)?\s+FRESCO(S)?/g, "")
+    .replace(/OZBLU/g, "")
+    .replace(/GRANEL/g, "")
+    .replace(/DESCARTE\s+DE\s+PACKING/g, "")
+    .replace(/DESCARTE\s+DE\s+CAMPO/g, "")
+    .replace(/DESCARTE\s+PACKING/g, "")
+    .replace(/DESCARTE\s+CAMPO/g, "")
+    .replace(/DESCARTE/g, "")
+    .replace(/CAMPO/g, "")
+    .replace(/PACKING/g, "")
+    .replace(/[^A-Z0-9]+/g, "");
+
+  // Respaldo explícito para diferencias de apóstrofo/acento en Jack's Salute.
+  if (clave.indexOf("JACK") >= 0 && clave.indexOf("SALUTE") >= 0) {
+    return "JACKSSALUTE";
+  }
+  return clave;
+}
+function _familiaProductoDesdeDescripcion_(descripcion) {
+  var texto = String(descripcion || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (/\bUVA(S)?\s+FRESCA(S)?\b/.test(texto)) return "UVA";
+  if (/\bARANDANO(S)?\b/.test(texto)) return "ARANDANOS";
+  return "";
+}
+
+function _productoPertenecePerfil_(variedad, perfil, productosBD) {
+  var clave = _normalizarClaveVariedadProducto_(variedad);
+  if (!clave) return false;
+  var familiaEsperada = _normalizarPerfilProducto_(perfil);
+  for (var i = 0; i < (productosBD || []).length; i++) {
+    var producto = productosBD[i];
+    if (producto.familia !== familiaEsperada) continue;
+    var claveBD = _normalizarClaveVariedadProducto_(producto.variedadClave || producto.descripcion || "");
+    if (claveBD === clave || producto.variedadClave === clave) return true;
+  }
+
+  // Respaldo explícito y acotado: Jack's Salute está registrada en BD-PRODUCTOS
+  // como JACKÁ'S SALUTE. Si un apóstrofo/caracter invisible impide la clave exacta,
+  // se valida la existencia del producto en BD para la familia y tipo correctos.
+  if (clave === "JACKSSALUTE" && familiaEsperada === "UVA") {
+    for (var j = 0; j < (productosBD || []).length; j++) {
+      var productoJack = productosBD[j];
+      var descripcionJack = String(productoJack.descripcion || "").toUpperCase();
+      if (productoJack.familia === "UVA" &&
+          descripcionJack.indexOf("JACK") >= 0 &&
+          descripcionJack.indexOf("SALUTE") >= 0 &&
+          productoJack.tipo === "DESCARTE PACKING") return true;
+    }
+  }
+  return false;
+}
+
 function _crearSesionDespachos_(usuario, tipoAcceso, cliente, empresa, producto) {
   var token = Utilities.getUuid();
   CacheService.getScriptCache().put(
@@ -213,10 +278,9 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr, producto) {
       var fechaObj = normalizarFechaCelda(datosLinks[i][1]);
       var urlLink = datosLinks[i][2] ? datosLinks[i][2].toString().trim() : "";
       
-      if (fechaObj && urlLink) {
-        if (fechaObj >= dInicio && fechaObj <= dFin) {
-          enlacesAProcesar.push({ empresa: empresaMatriz, url: urlLink });
-        }
+      var empresaPermitida = perfilProducto !== "UVA" || (empresaMatriz === "AGA" || empresaMatriz === "ARENUVA");
+      if (empresaPermitida && fechaObj && urlLink && fechaObj >= dInicio && fechaObj <= dFin) {
+        enlacesAProcesar.push({ empresa: empresaMatriz, url: urlLink });
       }
     }
     
@@ -224,103 +288,61 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr, producto) {
       return { exito: true, datos: [], mensaje: "No se encontraron enlaces en el rango seleccionado." };
     }
     
-    // Cargar códigos desde BD-PRODUCTOS.
-    // La relación variedad/código se construye dinámicamente para que
-    // nuevas variedades agregadas a BD-PRODUCTOS no requieran cambios en código.
+    // Cargar códigos y familia desde BD-PRODUCTOS. Usamos valores visibles
+    // para conservar los códigos largos exactamente como aparecen en la hoja.
     var listaProductosBD = [];
     var mapaCodigosProducto = {};
     var sheetProductos = ss.getSheetByName("BD-PRODUCTOS");
 
-    var normalizarProducto = function(texto) {
-      var valor = String(texto || "")
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\\u0300-\\u036f]/g, "")
-        .replace(/®/g, "")
-        .replace(/OZBLU/g, "")
-        .replace(/ARANDANO ORGANICO FRESCO/g, "ORGANICO")
-        .replace(/ARANDANO FRESCO/g, "")
-        .replace(/UVA FRESCA/g, "")
-        // Unificar variantes de Jack's Salute/JACKÁ'S SALUTE.
-        .replace(/JACKA?\\s*['’]?\\s*S\\s*SALUTE/g, "JACKASSALUTE")
-        .replace(/JACKS\\s*SALUTE/g, "JACKASSALUTE")
-        .replace(/GRANEL/g, "")
-        // Las descripciones de BD pueden decir "DESCARTE DE PACKING".
-        .replace(/DESCARTE\\s+DE\\s+PACKING/g, "")
-        .replace(/DESCARTE\\s+DE\\s+CAMPO/g, "")
-        .replace(/DESCARTE\\s+PACKING/g, "")
-        .replace(/DESCARTE\\s+CAMPO/g, "")
-        .replace(/DESCARTE/g, "")
-        .replace(/CAMPO/g, "")
-        .replace(/PACKING/g, "")
-        .replace(/[^A-Z0-9]+/g, " ")
-        .replace(/\\s+/g, " ")
-        .trim();
-
-      // SISPACKING puede enviar AUTUMNCRISP y BD-PRODUCTOS AUTUMN CRISP.
-      // Compactar espacios solo para comparar; el código original no se altera.
-      return valor.replace(/\\s+/g, "");
-    };
+    var normalizarProducto = _normalizarClaveVariedadProducto_;
 
     var obtenerTipoDescarte = function(texto) {
-      var valor = String(texto || "").toUpperCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
-      return valor.includes("PACKING") ? "DESCARTE PACKING" : "DESCARTE CAMPO";
+      var valor = String(texto || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return valor.indexOf("PACKING") >= 0 ? "DESCARTE PACKING" : "DESCARTE CAMPO";
     };
 
     if (sheetProductos) {
-      var datosProductos = sheetProductos.getDataRange().getValues();
-
+      var datosProductos = sheetProductos.getDataRange().getDisplayValues();
       for (var p = 1; p < datosProductos.length; p++) {
-        var codigo = datosProductos[p][0] != null
-          ? String(datosProductos[p][0]).trim()
-          : "";
-
-        var descripcion = datosProductos[p][1] != null
-          ? String(datosProductos[p][1]).trim().toUpperCase()
-          : "";
-
+        var codigo = String(datosProductos[p][0] || "").trim();
+        var descripcion = String(datosProductos[p][1] || "").trim().toUpperCase();
         if (!codigo || !descripcion) continue;
 
-        var producto = {
+        var productoBD = {
           codigo: codigo,
           descripcion: descripcion,
+          familia: _familiaProductoDesdeDescripcion_(descripcion),
           tipo: obtenerTipoDescarte(descripcion),
           variedadClave: normalizarProducto(descripcion)
         };
+        if (!productoBD.familia || !productoBD.variedadClave) continue;
+        listaProductosBD.push(productoBD);
 
-        listaProductosBD.push(producto);
-
-        // Guardar por tipo + variedad normalizada.
-        // Se usa la descripción completa de BD-PRODUCTOS como fuente única.
-        var claveProducto = producto.tipo + "|" + producto.variedadClave;
-        if (!mapaCodigosProducto[claveProducto]) {
-          mapaCodigosProducto[claveProducto] = codigo;
-        }
+        var claveProducto = productoBD.familia + "|" + productoBD.tipo + "|" + productoBD.variedadClave;
+        if (!mapaCodigosProducto[claveProducto]) mapaCodigosProducto[claveProducto] = codigo;
       }
     }
 
     var buscarCodigoProducto = function(variedadProducto, presentacionProducto) {
       var variedadNormalizada = normalizarProducto(variedadProducto);
       if (!variedadNormalizada) return "-";
-
       var tipoDescarte = obtenerTipoDescarte(presentacionProducto);
-      var claveDirecta = tipoDescarte + "|" + variedadNormalizada;
+      var claveDirecta = perfilProducto + "|" + tipoDescarte + "|" + variedadNormalizada;
+      var codigoDirecto = mapaCodigosProducto[claveDirecta];
+      if (codigoDirecto) return codigoDirecto;
 
-      // Coincidencia directa: permite agregar nuevas variedades sin cambiar el código.
-      if (mapaCodigosProducto[claveDirecta]) {
-        return mapaCodigosProducto[claveDirecta];
-      }
-
-      // Respaldo flexible para pequeñas diferencias de texto entre SISPACKING y BD.
-      for (var p = 0; p < listaProductosBD.length; p++) {
-        var productoBD = listaProductosBD[p];
-        if (productoBD.tipo !== tipoDescarte) continue;
-
-        if (productoBD.variedadClave === variedadNormalizada) {
-          return productoBD.codigo;
+      // Respaldo de código para Jack's Salute: buscar por descripción de BD,
+      // conservando el filtro estricto de familia UVA y descarte Packing.
+      if (variedadNormalizada === "JACKSSALUTE" && perfilProducto === "UVA" && tipoDescarte === "DESCARTE PACKING") {
+        for (var k = 0; k < listaProductosBD.length; k++) {
+          var productoJack = listaProductosBD[k];
+          var descripcionJack = String(productoJack.descripcion || "").toUpperCase();
+          if (productoJack.familia === "UVA" && productoJack.tipo === "DESCARTE PACKING" &&
+              descripcionJack.indexOf("JACK") >= 0 && descripcionJack.indexOf("SALUTE") >= 0) {
+            return productoJack.codigo;
+          }
         }
       }
-
       return "-";
     };
 
@@ -350,6 +372,7 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr, producto) {
             var plantaOrigen = subDatos[j][13] ? subDatos[j][13].toString().trim().toUpperCase() : ""; // Columna N
             var variedad = subDatos[j][2] ? subDatos[j][2].toString().trim().toUpperCase() : ""; // Columna C
             var pesoNeto = parseFloat(subDatos[j][9]) || 0; // Columna J
+            if (!_productoPertenecePerfil_(variedad, perfilProducto, listaProductosBD)) pesoNeto = 0;
             
             if (pesoNeto > 0 && fechaTxt.includes("/")) {
               var llavePacking = item.empresa + "|" + fechaTxt + "|" + plantaOrigen + "|" + tipoDescarteLarama + "|" + variedad;
@@ -382,6 +405,7 @@ function obtenerDatosReportePorFechas(fechaInicioStr, fechaFinStr, producto) {
             var plantaOrigenCampo = subDatos[j][21] ? subDatos[j][21].toString().trim().toUpperCase() : ""; // Columna V
             var variedadCampo = subDatos[j][9] ? subDatos[j][9].toString().trim().toUpperCase() : ""; // Columna J
             var pesoNetoCampo = parseFloat(subDatos[j][12]) || 0; // Columna M
+            if (!_productoPertenecePerfil_(variedadCampo, perfilProducto, listaProductosBD)) pesoNetoCampo = 0;
             
             if (pesoNetoCampo > 0 && fechaTxtC.includes("/")) {
               var llaveCampo = item.empresa + "|" + fechaTxtC + "|" + plantaOrigenCampo + "|" + tipoDescarteCampo + "|" + variedadCampo;
@@ -443,68 +467,45 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr, pr
     if (sheetProductos) {
       var datosProd = sheetProductos.getDataRange().getDisplayValues();
       for (var p = 1; p < datosProd.length; p++) {
-        var codCelda = datosProd[p][0] ? datosProd[p][0].toString().trim().toUpperCase() : "";
-        var descCelda = datosProd[p][1] ? datosProd[p][1].toString().trim().toUpperCase() : "";
-        if (descCelda !== "" && codCelda !== "") {
-          listaProductosBD.push({ codigo: codCelda, descripcion: descCelda });
+        var codCelda = String(datosProd[p][0] || "").trim();
+        var descCelda = String(datosProd[p][1] || "").trim().toUpperCase();
+        if (descCelda && codCelda) {
+          var familiaBD = _familiaProductoDesdeDescripcion_(descCelda);
+          var tipoBD = descCelda.indexOf("PACKING") >= 0 ? "DESCARTE PACKING" : "DESCARTE CAMPO";
+          var claveBD = _normalizarClaveVariedadProducto_(descCelda);
+          if (familiaBD && claveBD) listaProductosBD.push({
+            codigo: codCelda,
+            descripcion: descCelda,
+            familia: familiaBD,
+            tipo: tipoBD,
+            variedadClave: claveBD
+          });
         }
       }
     }
 
-    // Normaliza únicamente el texto para comparar productos sin perder
-    // diferencias como ROSITA y ORGÁNICO ROSITA.
-    var normalizarProducto = function(texto) {
-      return String(texto || "")
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/ARANDANO ORGANICO FRESCO/g, "ORGANICO")
-        .replace(/ARANDANO FRESCO/g, "")
-        .replace(/UVA FRESCA/g, "")
-        .replace(/JACKA\s*S\s*SALUTE/g, "JACK S SALUTE")
-        .replace(/OZBLU®?/g, "")
-        .replace(/GRANEL/g, "")
-        .replace(/DESCARTE\s+(CAMPO|PACKING)/g, "")
-        .replace(/DESCARTE/g, "")
-        .replace(/CAMPO/g, "")
-        .replace(/PACKING/g, "")
-        .replace(/[-]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    };
+    var normalizarProducto = _normalizarClaveVariedadProducto_;
 
     var obtenerVariedadDesdeBD = function(texto) {
       var clave = normalizarProducto(texto);
       if (!clave) return "";
-
       for (var b = 0; b < listaProductosBD.length; b++) {
-        if (normalizarProducto(listaProductosBD[b].descripcion) === clave) {
-          return clave;
-        }
+        if (listaProductosBD[b].familia === perfilProducto && listaProductosBD[b].variedadClave === clave) return clave;
       }
       return "";
     };
 
     var buscarCodigoProductoCruce = function(variedadProducto, tipoDescarte) {
       var variedadNormalizada = normalizarProducto(variedadProducto);
-      var tipoNormalizado = String(tipoDescarte || "").toUpperCase().includes("PACKING")
-        ? "DESCARTE PACKING"
-        : "DESCARTE CAMPO";
-
+      var tipoNormalizado = String(tipoDescarte || "").toUpperCase().indexOf("PACKING") >= 0
+        ? "DESCARTE PACKING" : "DESCARTE CAMPO";
       if (!variedadNormalizada) return "-";
-
       for (var b = 0; b < listaProductosBD.length; b++) {
         var productoBD = listaProductosBD[b];
-        var descripcionBD = productoBD.descripcion;
-        var tipoBD = descripcionBD.includes("DESCARTE PACKING")
-          ? "DESCARTE PACKING"
-          : "DESCARTE CAMPO";
-
-        if (tipoBD === tipoNormalizado && normalizarProducto(descripcionBD) === variedadNormalizada) {
+        if (productoBD.familia === perfilProducto && productoBD.tipo === tipoNormalizado && productoBD.variedadClave === variedadNormalizada) {
           return productoBD.codigo;
         }
       }
-
       return "-";
     };
 
@@ -551,10 +552,15 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr, pr
       var fechaObj = normalizarFechaCelda(datosLinks[i][1]);
       var urlLink = datosLinks[i][2] ? datosLinks[i][2].toString().trim() : "";
       
-      if (fechaObj && urlLink && empMatriz === empresaSeleccionada.toUpperCase()) {
-        if (fechaObj >= dInicio && fechaObj <= dFin) {
-          enlacesAProcesar.push(urlLink);
-        }
+      var empresaNormalizada = empMatriz.replace(/[^A-Z0-9]/g, "");
+      var empresaSeleccionadaNormalizada = empresaSeleccionada.replace(/[^A-Z0-9]/g, "");
+      var coincideEmpresa = empresaNormalizada === empresaSeleccionadaNormalizada ||
+        (empresaSeleccionada === "AGA" && empresaNormalizada.indexOf("AGRICOLAANDREA") >= 0) ||
+        (empresaSeleccionada === "ARENUVA" && empresaNormalizada.indexOf("ARENUVA") >= 0) ||
+        (empresaSeleccionada === "LARAMA" && empresaNormalizada.indexOf("LARAMA") >= 0);
+      var empresaPermitidaPerfil = perfilProducto !== "UVA" || empresaSeleccionada === "AGA" || empresaSeleccionada === "ARENUVA";
+      if (empresaPermitidaPerfil && coincideEmpresa && fechaObj && urlLink && fechaObj >= dInicio && fechaObj <= dFin) {
+        enlacesAProcesar.push(urlLink);
       }
     }
 
@@ -578,6 +584,7 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr, pr
               var fTxtC = Utilities.formatDate(fObjC, Session.getScriptTimeZone(), "dd/MM/yyyy");
               var varC = subDatos[j][9] ? subDatos[j][9].toString().trim().toUpperCase() : "";
               var pesoC = parseFloat(subDatos[j][12]) || 0;
+              if (!_productoPertenecePerfil_(varC, perfilProducto, listaProductosBD)) pesoC = 0;
               if (pesoC > 0) {
                 var claveVariedadC = normalizarProducto(varC);
                 if (!claveVariedadC) continue;
@@ -596,6 +603,7 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr, pr
               var fTxtP = Utilities.formatDate(fObjP, Session.getScriptTimeZone(), "dd/MM/yyyy");
               var varP = subDatos[j][2] ? subDatos[j][2].toString().trim().toUpperCase() : "";
               var pesoP = parseFloat(subDatos[j][9]) || 0;
+              if (!_productoPertenecePerfil_(varP, perfilProducto, listaProductosBD)) pesoP = 0;
               if (pesoP > 0) {
                 var claveVariedadP = normalizarProducto(varP);
                 if (!claveVariedadP) continue;
@@ -677,9 +685,16 @@ function obtenerCruceStocks(empresaSeleccionada, fechaInicioStr, fechaFinStr, pr
               if (limpiar) variedadActual = limpiar;
             }
 
-            var claveVariedadStock = normalizarProducto(variedadActual);
-            llaveStockActual = claveVariedadStock + "|" + tipoGrupoActual;
-            if (claveVariedadStock && !mapaNombreVariedadCruce[claveVariedadStock]) mapaNombreVariedadCruce[claveVariedadStock] = variedadActual;
+            // Mantener el bloque SAP solo si su variedad pertenece al perfil activo.
+            if (!_productoPertenecePerfil_(variedadActual, perfilProducto, listaProductosBD)) {
+              variedadActual = "";
+              llaveStockActual = "";
+              tipoGrupoActual = "";
+            } else {
+              var claveVariedadStock = normalizarProducto(variedadActual);
+              llaveStockActual = claveVariedadStock + "|" + tipoGrupoActual;
+              if (claveVariedadStock && !mapaNombreVariedadCruce[claveVariedadStock]) mapaNombreVariedadCruce[claveVariedadStock] = variedadActual;
+            }
             ultimoValorColJ = null; // Reiniciar para el nuevo bloque
           }
         }

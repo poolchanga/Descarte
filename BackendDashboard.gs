@@ -22,7 +22,7 @@ function getDashboardData(empresa, fechaInicio, fechaFin, variedad, producto) {
     var fin = _dashboardFecha_(fechaFin, true);
 
     var guias = [];
-    var ventas = _dashboardLeerVentas_(sheetVentas, filtroEmpresa, inicio, fin);
+    var ventas = _dashboardLeerVentas_(sheetVentas, filtroEmpresa, inicio, fin, perfilProducto);
 
     if (filtroVariedad && filtroVariedad !== 'TODAS') {
       ventas = ventas.filter(function(v) {
@@ -292,6 +292,7 @@ function _dashboardLeerGuias_(sheet, filtroEmpresa, inicio, fin) {
     var kg = _dashboardNumero_(fila[12]);
 
     if (!correlativo || !empresa || !codigo || kg <= 0) continue;
+    if (familiaPorCodigo[codigo] !== perfilVentas) continue;
     if (!_dashboardEmpresaCoincide_(empresa, filtroEmpresa)) continue;
     if (!_dashboardEnRango_(fecha, inicio, fin)) continue;
 
@@ -316,7 +317,7 @@ function _dashboardLeerGuias_(sheet, filtroEmpresa, inicio, fin) {
   return resultado;
 }
 
-function _dashboardLeerVentas_(sheet, filtroEmpresa, inicio, fin) {
+function _dashboardLeerVentas_(sheet, filtroEmpresa, inicio, fin, producto) {
   var resultado = [];
   if (!sheet || sheet.getLastRow() <= 1) return resultado;
 
@@ -326,6 +327,27 @@ function _dashboardLeerVentas_(sheet, filtroEmpresa, inicio, fin) {
   var datos = sheet.getRange(
     2, 1, sheet.getLastRow() - 1, 9
   ).getValues();
+  // Leer la columna de códigos como texto visible para evitar pérdida de precisión
+  // en códigos largos que Sheets pueda interpretar como números.
+  var codigosVisibles = sheet.getRange(2, 5, sheet.getLastRow() - 1, 1).getDisplayValues();
+
+  // Aislar las ventas por familia usando el código de BD-PRODUCTOS.
+  var familiaPorCodigo = {};
+  try {
+    var ssProductos = SpreadsheetApp.openById(_dashboardSpreadsheetId_());
+    var shProductos = ssProductos.getSheetByName('BD-PRODUCTOS');
+    if (shProductos && shProductos.getLastRow() > 1) {
+      var bd = shProductos.getDataRange().getDisplayValues();
+      for (var b = 1; b < bd.length; b++) {
+        var codigoBD = String(bd[b][0] || '').trim();
+        var descBD = String(bd[b][1] || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (!codigoBD || !descBD) continue;
+        if (/\bUVA(S)?\s+FRESCA(S)?\b/.test(descBD)) familiaPorCodigo[codigoBD] = 'UVA';
+        else if (/\bARANDANO(S)?\b/.test(descBD)) familiaPorCodigo[codigoBD] = 'ARANDANOS';
+      }
+    }
+  } catch (e) {}
+  var perfilVentas = String(producto || 'ARANDANOS').toUpperCase() === 'UVA' ? 'UVA' : 'ARANDANOS';
 
   for (var i = 0; i < datos.length; i++) {
     var fila = datos[i];
@@ -334,7 +356,7 @@ function _dashboardLeerVentas_(sheet, filtroEmpresa, inicio, fin) {
     var fecha = fila[1];
     var ruc = String(fila[2] || '').trim();
     var cliente = String(fila[3] || '').trim();
-    var codigo = String(fila[4] || '').trim();
+    var codigo = String((codigosVisibles[i] && codigosVisibles[i][0]) || fila[4] || '').trim();
     var variedad = String(fila[5] || '').trim();
     var kg = _dashboardNumero_(fila[6]);
     var empresa = String(fila[7] || '').trim();
@@ -801,7 +823,30 @@ function _dashboardLeerStockSAP_(empresa, fechaInicio, fechaFin, filtroVariedad,
               if (limpiar) variedadActual = limpiar;
             }
 
-            llaveStockActual = variedadActual + '|' + tipoGrupoActual;
+            // No permitir que un bloque SAP de la otra familia alimente este perfil.
+            var variedadPerfilNorm = typeof _normalizarClaveVariedadProducto_ === 'function'
+              ? _normalizarClaveVariedadProducto_(variedadActual)
+              : _dashboardNormalizar_(variedadActual).replace(/[^A-Z0-9]/g, '');
+            var familiaBloqueSAP = '';
+            for (var fb = 0; fb < listaProductosBD.length; fb++) {
+              var descPerfil = listaProductosBD[fb].descripcion;
+              var descPerfilNorm = typeof _normalizarClaveVariedadProducto_ === 'function'
+                ? _normalizarClaveVariedadProducto_(descPerfil)
+                : _dashboardNormalizar_(descPerfil).replace(/[^A-Z0-9]/g, '');
+              if (descPerfilNorm === variedadPerfilNorm) {
+                familiaBloqueSAP = typeof _familiaProductoDesdeDescripcion_ === 'function'
+                  ? _familiaProductoDesdeDescripcion_(descPerfil)
+                  : (/\bUVA(S)?\s+FRESCA(S)?\b/.test(descPerfil) ? 'UVA' : (/\bARANDANO(S)?\b/.test(descPerfil) ? 'ARANDANOS' : ''));
+                if (familiaBloqueSAP) break;
+              }
+            }
+            if (familiaBloqueSAP !== (esUva ? 'UVA' : 'ARANDANOS')) {
+              variedadActual = '';
+              llaveStockActual = '';
+              tipoGrupoActual = '';
+            } else {
+              llaveStockActual = variedadActual + '|' + tipoGrupoActual;
+            }
             ultimoValorColJ = null;
           }
         }
